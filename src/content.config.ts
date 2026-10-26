@@ -1,6 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { appsLoader } from './lib/appsLoader';
 
 const schema = z.object({
   title: z.string(),
@@ -17,7 +18,9 @@ const schema = z.object({
   githubUrl: z.string().default(''),
 });
 
-// Local markdown is the only content source for now.
+// Local markdown: the fallback and the easiest place to start.
 const apps = defineCollection({ loader: glob({ pattern: '**/*.md', base: './src/content/apps' }), schema });
+// Firestore "projects" collection, read at build time through the public REST API.
+const appsRemote = defineCollection({ loader: appsLoader(), schema });
 
-export const collections = { apps };
+export const collections = { apps, appsRemote };
