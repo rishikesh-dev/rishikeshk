@@ -1,0 +1,64 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ProjectRow from '../components/ProjectRow.astro';
+import Pubspec from '../components/Pubspec.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { site } from '../data/site';
+import { soon } from '../data/soon';
+
+const projects = (await getCollection('apps')).sort((a, b) => a.data.order - b.data.order);
+---
+<Base>
+  <header class="hero" id="home">
+    <div>
+      <p class="label"><b>01</b>Flutter Developer, India</p>
+      <h1><span><i>Apps</i></span><span><i>With</i></span><span><i>Purpose<em>.</em></i></span></h1>
+      <p class="intro">I design and develop thoughtful mobile apps with Flutter. From personal tools to productivity apps, I focus on clean code, solid architecture and real-world usability.</p>
+      <div class="cta-row"><a class="btn" href="#work">View Projects</a><a class="btn line" href="#contact">Contact Me</a></div>
+    </div>
+    <img class="sketch" src="/images/sketch.jpg" width=744 height=562 alt="Pencil sketch of a developer typing on a laptop at a desk with a lamp and a plant" fetchpriority="high" />
+  </header>
+
+  <section class="s" id="work">
+    <p class="label"><b>02</b>Featured Works</p>
+    {projects.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} />)}
+    <div class="more">
+      <h3>More on the way</h3>
+      <div class="soon">
+        {soon.map((s) => (
+          <article class="ph">
+            <span class="st">{s.status}</span>
+            <div><h4>{s.title}</h4><p>{s.text}</p></div>
+            <span class="cat">{s.category}</span>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="s about" id="about">
+    <div><p class="label"><b>03</b>About</p><q>I build apps the way I want to use them: fast, simple and made to last.</q></div>
+    <dl>
+      <dt>Based in</dt><dd>{site.location}</dd>
+      <dt>How I work</dt><dd>Solo. You talk to the person who writes the code.</dd>
+      <dt>What I do</dt><dd>My own apps, plus client work when it fits.</dd>
+    </dl>
+  </section>
+
+  <section class="s" id="skills"><Pubspec /></section>
+
+  <section class="s contact" id="contact">
+    <p class="label"><b>05</b>Contact</p>
+    <div class="contact-grid">
+      <div>
+        <h2>Let’s build something with purpose.</h2>
+        <div class="alt">
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+          {site.bookingUrl && <a href={site.bookingUrl} rel="noopener">Book a call</a>}
+        </div>
+      </div>
+      <ContactForm />
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,42 @@
+---
+const deps = [
+  ['flutter', 'sdk', 'Android apps, from first screen to the store'],
+  ['flutter_bloc', 'any', 'clean architecture, easy to change'],
+  ['hive', 'any', 'fast local data, works offline'],
+  ['purchases_flutter', 'any', 'RevenueCat: subscriptions, paywalls'],
+  ['fl_chart', 'any', 'charts that make numbers readable'],
+  ['go_router', 'any', 'navigation'],
+  ['firebase_core', 'any', 'Firebase backend'],
+];
+---
+<div class="skillgrid">
+  <div>
+    <p class="label"><b>04</b>Skills</p>
+    <h2 class="skh">Everything I use is in one file.</h2>
+    <p class="skp">This is my toolbox, written the way a Flutter app lists it. Press the button and watch it install.</p>
+    <button class="btn" id="pub" type="button">flutter pub get</button>
+  </div>
+  <div class="code" role="group" aria-label="pubspec.yaml">
+    <div class="bar2">pubspec.yaml</div>
+    <pre class="src"><span class="ln">name: <b>rishikesh_k</b></span><span class="ln">description: Apps with purpose.</span><span class="ln">dependencies:</span>{deps.map(([n, v, c]) => <span class="ln dep">{'  '}<b>{n}</b>: {v} <i># {c}</i></span>)}</pre>
+    <pre class="out" id="out" aria-live="polite"></pre>
+  </div>
+</div>
+<script>
+  const btn = document.getElementById('pub') as HTMLButtonElement;
+  const out = document.getElementById('out')!;
+  const names = [...document.querySelectorAll('.dep b')].map((b) => b.textContent!).filter((n) => n !== 'flutter');
+  const lines = ['Running "flutter pub get"...', 'Resolving dependencies...', ...names.map((n) => '+ ' + n), 'Got dependencies. Ready to build.'];
+  const calm = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let busy = false;
+  btn.addEventListener('click', () => {
+    if (busy) return;
+    busy = true; btn.disabled = true; out.textContent = '';
+    let i = 0;
+    const next = () => {
+      if (i < lines.length) { out.textContent += (i ? '\n' : '') + lines[i++]; calm ? next() : setTimeout(next, i < 3 ? 450 : 260); }
+      else { busy = false; btn.disabled = false; btn.textContent = 'Run it again'; }
+    };
+    next();
+  });
+</script>

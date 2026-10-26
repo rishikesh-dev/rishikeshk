@@ -1,0 +1,41 @@
+---
+import { site } from '../data/site';
+const action = site.formEndpoint || `mailto:${site.email}`;
+---
+<form class="form" id="contact-form" method="post" action={action} enctype={site.formEndpoint ? undefined : 'text/plain'} data-endpoint={site.formEndpoint} data-email={site.email}>
+  <div class="two">
+    <label>Name<input name="name" autocomplete="name" required /></label>
+    <label>Email<input name="email" type="email" autocomplete="email" required /></label>
+  </div>
+  <label>What do you need?
+    <select name="topic">
+      <option>A freelance project</option>
+      <option>A remote role</option>
+      <option>Promote or feature an app</option>
+      <option>Something else</option>
+    </select>
+  </label>
+  <label>Message<textarea name="message" required></textarea></label>
+  <input class="hp" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
+  <button class="btn" type="submit">Send message</button>
+  <p class="form-msg" id="form-msg" role="status"></p>
+</form>
+<script>
+  const form = document.getElementById('contact-form') as HTMLFormElement;
+  const msg = document.getElementById('form-msg')!;
+  form.addEventListener('submit', async (e) => {
+    const { endpoint, email } = form.dataset;
+    if (!endpoint) return; // no service set up: falls back to the email app
+    e.preventDefault();
+    const fd = new FormData(form);
+    msg.className = 'form-msg'; msg.textContent = 'Sending...';
+    if (fd.get('_gotcha')) { msg.textContent = 'Thanks. I will reply within two days.'; return; } // spam trap
+    try {
+      const res = await fetch(endpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error();
+      form.reset(); msg.textContent = 'Thanks. I will reply within two days.';
+    } catch {
+      msg.className = 'form-msg err'; msg.textContent = `Could not send. Please email me at ${email}.`;
+    }
+  });
+</script>
