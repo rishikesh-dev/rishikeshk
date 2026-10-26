@@ -1,14 +1,17 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
+import { getApps } from '../../lib/apps';
+import { getRepo, getReadmeHtml } from '../../lib/github';
 import Base from '../../layouts/Base.astro';
 
 export async function getStaticPaths() {
-  const all = await getCollection('apps');
+  const all = await getApps();
   return all.map((project) => ({ params: { slug: project.id }, props: { project } }));
 }
 const { project } = Astro.props;
 const { Content } = await render(project);
 const d = project.data;
+const [repo, readme] = await Promise.all([getRepo(d.githubUrl), getReadmeHtml(d.githubUrl)]);
 ---
 <Base title={`${d.title} case study – Rishikesh K`} description={d.summary} image={d.image}>
   <article class="cs">
@@ -16,6 +19,7 @@ const d = project.data;
     <h1>{d.title}</h1>
     <p class="kind">{d.kind}<span class="pill">{d.status === 'live' ? 'Live' : 'Coming soon'}</span></p>
     <p class="lead">{d.summary}</p>
+    {repo && <p class="meta"><span>{repo.stars} stars</span><span>{repo.forks} forks</span>{repo.language && <span>{repo.language}</span>}<span>Updated {repo.updated}</span></p>}
     <ul class="chips">{d.stack.map((s: string) => <li>{s}</li>)}</ul>
     <div class="cta-row">
       {d.storeUrl && <a class="btn" href={d.storeUrl} rel="noopener">Get it on Google Play</a>}
@@ -24,5 +28,6 @@ const d = project.data;
     </div>
     {d.image && <div class="shot"><img src={d.image} alt={d.imageAlt} /></div>}
     <div class="prose"><Content /></div>
+    {readme && <div class="prose readme"><h2>From the README</h2><Fragment set:html={readme} /></div>}
   </article>
 </Base>

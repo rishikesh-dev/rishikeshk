@@ -1,5 +1,5 @@
 ---
-const { id, data, flip = false } = Astro.props;
+const { id, data, flip = false, repo = null } = Astro.props;
 const href = `/apps/${id}/`;
 ---
 <article class={flip ? 'work flip' : 'work'}>
@@ -11,6 +11,7 @@ const href = `/apps/${id}/`;
     <h2>{data.title}</h2>
     <p class="kind">{data.kind}<span class="pill">{data.status === 'live' ? 'Live' : 'Coming soon'}</span></p>
     <p class="d">{data.summary}</p>
+    {repo && <p class="meta"><span>{repo.stars} stars</span>{repo.language && <span>{repo.language}</span>}<span>Updated {repo.updated}</span></p>}
     <ul class="chips">{data.stack.map((s: string) => <li>{s}</li>)}</ul>
     <div class="cta-row">
       <a class={data.featured ? 'btn' : 'btn line'} href={href}>Read case study</a>

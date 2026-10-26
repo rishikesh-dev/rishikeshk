@@ -1,5 +1,7 @@
 ---
-import { getCollection } from 'astro:content';
+import { getApps } from '../lib/apps';
+import { getRepo } from '../lib/github';
+import { fsDoc } from '../lib/firestore';
 import Base from '../layouts/Base.astro';
 import ProjectRow from '../components/ProjectRow.astro';
 import Pubspec from '../components/Pubspec.astro';
@@ -7,7 +9,9 @@ import ContactForm from '../components/ContactForm.astro';
 import { site } from '../data/site';
 import { soon } from '../data/soon';
 
-const projects = (await getCollection('apps')).sort((a, b) => a.data.order - b.data.order);
+const projects = await getApps();
+const repos = await Promise.all(projects.map((project) => getRepo(project.data.githubUrl)));
+const bio = await fsDoc('portfolio/bio');
 ---
 <Base>
   <header class="hero" id="home">
@@ -22,7 +26,7 @@ const projects = (await getCollection('apps')).sort((a, b) => a.data.order - b.d
 
   <section class="s" id="work">
     <p class="label"><b>02</b>Featured Works</p>
-    {projects.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} />)}
+    {projects.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} />)}
     <div class="more">
       <h3>More on the way</h3>
       <div class="soon">
@@ -43,6 +47,9 @@ const projects = (await getCollection('apps')).sort((a, b) => a.data.order - b.d
       <dt>Based in</dt><dd>{site.location}</dd>
       <dt>How I work</dt><dd>Solo. You talk to the person who writes the code.</dd>
       <dt>What I do</dt><dd>My own apps, plus client work when it fits.</dd>
+      {bio?.liveApps != null && <><dt>Live apps</dt><dd>{bio.liveApps}</dd></>}
+      {bio?.projects != null && <><dt>Projects</dt><dd>{bio.projects}</dd></>}
+      {bio?.downloads != null && <><dt>Downloads</dt><dd>{bio.downloads}</dd></>}
     </dl>
   </section>
 
