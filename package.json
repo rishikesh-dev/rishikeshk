@@ -9,6 +9,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "verify": "node scripts/verify-build.mjs",
+    "verify:mobile": "node scripts/check-mobile.mjs",
     "astro": "astro"
   },
   "dependencies": {

@@ -1,25 +1,13 @@
 import type { Loader } from 'astro/loaders';
-import { fsList } from './firestore';
-
-const text = (value: unknown): string => (value == null ? '' : String(value));
-const find = (object: Record<string, any>, re: RegExp) => {
-  const key = Object.keys(object).find((name) => re.test(name));
-  return key ? object[key] : undefined;
-};
-const list = (value: any): string[] => {
-  if (Array.isArray(value)) return value.map(String).filter(Boolean);
-  if (typeof value === 'string') return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
-  return [];
-};
-const slug = (value: string) =>
-  String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+import { fsList } from './firestore.ts';
+import { normalizeProjects } from './projectData.ts';
 
 // Builds the "apps" content from the Firestore "projects" collection. The field
 // names match the old portfolio: title, description, techStack, tag,
-// playStoreUrl, githubUrl, story, highlight and decisions.
+// playStoreUrl, githubUrl, story, highlight, decisions, image and featured.
 //
-// If Firestore is not set up, empty, or fails in any way, nothing is added and
-// the site falls back to the markdown files in src/content/apps.
+// Firestore is the only project source. If it is not set up, empty, or fails,
+// nothing is added and the site renders its empty state.
 export function appsLoader(): Loader {
   return {
     name: 'firestore-apps',
@@ -30,55 +18,62 @@ export function appsLoader(): Loader {
       try {
         docs = await fsList('projects');
       } catch (e: any) {
-        logger.warn(`${e.message} Using local markdown instead.`);
+        logger.warn(`${e.message} No projects will be shown.`);
         return;
       }
-      if (!docs?.length) return;
+      if (!docs) {
+        logger.info('Firestore is not configured. No projects will be shown.');
+        return;
+      }
+      if (!docs.length) {
+        logger.info('No projects found in Firestore.');
+        return;
+      }
 
-      try {
-        const hasFeatured = docs.some((doc) => doc.featured === true);
-        for (const [index, doc] of docs.entries()) {
-          const play = text(doc.playStoreUrl ?? doc.playStoreURL ?? find(doc, /play.?store/i) ?? '');
-          const github = text(doc.githubUrl ?? doc.githubURL ?? doc.github ?? find(doc, /git/i) ?? '');
-          const image = text(doc.image ?? find(doc, /^(image|cover|screenshot|thumbnail)/i) ?? '');
-          const decisions = list(doc.decisions);
-          const title = text(doc.title ?? doc._id);
+      const projects = normalizeProjects(docs);
+      let loaded = 0;
 
+      for (const project of projects) {
+        try {
           const data = {
-            title,
-            kind: text(doc.tag ?? doc.kind ?? 'App'),
-            summary: text(doc.description ?? doc.summary ?? ''),
-            status: doc.status === 'live' || doc.status === 'soon' ? doc.status : play ? 'live' : 'soon',
-            order: typeof doc.order === 'number' ? doc.order : index + 1,
-            featured: hasFeatured ? doc.featured === true : index === 0,
-            stack: list(doc.techStack ?? doc.stack),
-            image: image || undefined,
-            imageAlt: text(doc.imageAlt ?? `${title} screenshot`),
-            tile: text(doc.tile) || undefined,
-            storeUrl: play,
-            githubUrl: github,
+            title: project.title,
+            kind: project.kind,
+            summary: project.summary,
+            status: project.status,
+            order: project.order,
+            featured: project.featured,
+            stack: project.stack,
+            image: project.image,
+            imageAlt: project.imageAlt,
+            tile: project.tile,
+            storeUrl: project.storeUrl,
+            githubUrl: project.githubUrl,
           };
 
-          const body = [
-            doc.story ? `## The story\n\n${text(doc.story)}` : '',
-            doc.highlight ? `## Highlight\n\n${text(doc.highlight)}` : '',
-            decisions.length ? `## Key decisions\n\n${decisions.map((item) => `- ${item}`).join('\n')}` : '',
-          ].filter(Boolean).join('\n\n');
+          const parsed = await parseData({ id: project.id, data });
+          let html = '';
+          try {
+            html = project.body ? (await renderMarkdown(project.body)).html : '';
+          } catch (error: any) {
+            logger.warn(`[firestore] could not render "${project.title}": ${error.message}`);
+          }
 
-          const id = slug(title) || slug(text(doc._id)) || `app-${index + 1}`;
           store.set({
-            id,
-            data: await parseData({ id, data }),
-            body,
-            rendered: { html: (await renderMarkdown(body)).html },
-            digest: generateDigest({ data, body }),
+            id: project.id,
+            data: parsed,
+            body: project.body,
+            rendered: { html },
+            digest: generateDigest({ data: parsed, body: project.body }),
           });
+          loaded += 1;
+        } catch (error: any) {
+          // One malformed document should never hide the other projects.
+          logger.warn(`[firestore] skipped "${project.title || 'untitled'}": ${error.message}`);
         }
-        logger.info(`Loaded ${docs.length} apps from Firestore`);
-      } catch (e: any) {
-        store.clear();
-        logger.warn(`[firestore] ${e.message} Using local markdown instead.`);
       }
+
+      if (loaded) logger.info(`Loaded ${loaded} apps from Firestore`);
+      else logger.warn('No eligible Firestore projects were loaded.');
     },
   };
 }

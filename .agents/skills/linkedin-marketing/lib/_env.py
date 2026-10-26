@@ -1,0 +1,116 @@
+"""Internal helper to load .env when python-dotenv is available."""
+from __future__ import annotations
+
+from pathlib import Path
+import os
+
+_ENV_LOADED = False
+_LOADED_PATHS: list[str] = []
+_DOTENV_VARIABLES = (
+    "APIFY_TOKEN", "PUBLORA_API_KEY", "LINKEDIN_PLATFORM_ID",
+    "PIXFARO_TOKEN", "PIXFARO_API_KEY",
+)
+
+
+def env_candidates() -> list[Path]:
+    """Where `load_env` looks, in order: upward from the cwd, then the repo root
+    (this file's parent's parent). Exposed so a "token set but not loaded"
+    diagnosis can name the exact file it expected."""
+    out: list[Path] = []
+    try:
+        from dotenv import find_dotenv
+
+        found = find_dotenv(usecwd=True)
+        if found:
+            out.append(Path(found))
+    except ImportError:
+        cur = Path.cwd()
+        for d in [cur, *cur.parents]:
+            if (d / ".env").is_file():
+                out.append(d / ".env")
+                break
+    root = Path(__file__).resolve().parents[1] / ".env"
+    if root not in out:
+        out.append(root)
+    return out
+
+
+def loaded_env_paths() -> list[str]:
+    """The .env files `load_env` actually read (empty when python-dotenv is missing)."""
+    return list(_LOADED_PATHS)
+
+
+def find_unloaded_token_file(var_names=("PIXFARO_TOKEN", "PIXFARO_API_KEY")) -> str | None:
+    """A .env in the expected places that DEFINES one of `var_names` while the
+    variable is absent from the environment — the silent-manual-mode case
+    (python-dotenv not installed, or the file was never loaded). Returns the
+    path to name in the message, or None."""
+    import os
+
+    if any(os.getenv(v) for v in var_names):
+        return None
+    for path in env_candidates():
+        try:
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#") or "=" not in stripped:
+                    continue
+                key, _, value = stripped.partition("=")
+                if key.strip() in var_names and value.strip().strip("\"'"):
+                    return str(path)
+        except OSError:
+            continue
+    return None
+
+
+def load_env(force: bool = False) -> None:
+    """Load environment variables from .env if python-dotenv is installed.
+
+    Safe no-op if python-dotenv is missing, preserving Tier 0 (manual)
+    zero-dependency operation. Searches upwards from the current working
+    directory and checks the repository root. Only bundle API credentials and
+    the platform id are loaded. Executables and transport settings must come
+    from the launch environment. Existing environment variables are preserved.
+    """
+    global _ENV_LOADED
+    if _ENV_LOADED and not force:
+        return
+
+    try:
+        from dotenv import dotenv_values
+
+        for path in env_candidates():
+            if not path.is_file():
+                continue
+            values = dotenv_values(path)
+            for name in _DOTENV_VARIABLES:
+                value = values.get(name)
+                if value is not None:
+                    os.environ.setdefault(name, value)
+            _LOADED_PATHS.append(str(path))
+    except ImportError:
+        pass
+
+    _ENV_LOADED = True
+
+
+def utf8_stdio() -> None:
+    """Make stdout and stderr UTF-8 when they are not already.
+
+    On Windows a pipe or a redirected file defaults to the ANSI code page
+    (cp1252 on most installs), which cannot encode the emoji and arrows in this
+    bundle's messages. Printing a manual-mode approval message then raised
+    UnicodeEncodeError in the caller, and post_comment.py died on its check
+    mark after the reaction had gone out, so the comment never did. Agents
+    capture output through a pipe, so this was the normal case, not an edge.
+
+    A console, Linux and macOS are UTF-8 already and are left alone, as is any
+    stream without `reconfigure` (a test's StringIO, a notebook).
+    """
+    import codecs
+    import sys
+
+    for stream in (sys.stdout, sys.stderr):
+        encoding = getattr(stream, "encoding", None)
+        if encoding and hasattr(stream, "reconfigure") and codecs.lookup(encoding).name != "utf-8":
+            stream.reconfigure(encoding="utf-8")

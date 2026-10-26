@@ -1,10 +1,16 @@
 import { getCollection } from 'astro:content';
-import { firebaseConfigured } from './firestore';
+import { firebaseConfigured } from './firestore.ts';
+import { splitProjectGroups } from './projectData.ts';
 
-// Firestore first. If it returns nothing (not configured, empty, or an error),
-// use the markdown files in src/content/apps.
+// Projects come only from Firestore. If it is not configured, empty, or fails,
+// the build still succeeds with an empty project list.
 export async function getApps() {
-  const remote = firebaseConfigured() ? await getCollection('appsRemote') : [];
-  const list = remote.length ? remote : await getCollection('apps');
+  const list = firebaseConfigured() ? await getCollection('apps') : [];
   return list.sort((a, b) => a.data.order - b.data.order);
+}
+
+/** Featured Work, upcoming apps and the regular listing all come from Firestore. */
+export async function getProjectGroups() {
+  const projects = await getApps();
+  return { projects, ...splitProjectGroups(projects) };
 }

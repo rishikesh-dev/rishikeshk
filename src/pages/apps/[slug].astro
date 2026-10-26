@@ -1,7 +1,8 @@
 ---
 import { render } from 'astro:content';
 import { getApps } from '../../lib/apps';
-import { getRepo, getReadmeHtml } from '../../lib/github';
+import { getRepo, getReadme } from '../../lib/github';
+import { mergeProjectDetails } from '../../lib/projectView';
 import Base from '../../layouts/Base.astro';
 
 export async function getStaticPaths() {
@@ -11,23 +12,49 @@ export async function getStaticPaths() {
 const { project } = Astro.props;
 const { Content } = await render(project);
 const d = project.data;
-const [repo, readme] = await Promise.all([getRepo(d.githubUrl), getReadmeHtml(d.githubUrl)]);
+const body = project.body ?? '';
+const [repoResult, readmeResult] = await Promise.allSettled([
+  getRepo(d.githubUrl),
+  getReadme(d.githubUrl),
+]);
+const repo = repoResult.status === 'fulfilled' ? repoResult.value : null;
+const readme = readmeResult.status === 'fulfilled' ? readmeResult.value : null;
+const merged = mergeProjectDetails(d, body, repo, readme);
 ---
-<Base title={`${d.title} case study – Rishikesh K`} description={d.summary} image={d.image}>
+<Base title={`${d.title} case study – Rishikesh K`} description={merged.summary} image={d.image}>
   <article class="cs">
     <a class="back" href="/#work">Back to projects</a>
     <h1>{d.title}</h1>
     <p class="kind">{d.kind}<span class="pill">{d.status === 'live' ? 'Live' : 'Coming soon'}</span></p>
-    <p class="lead">{d.summary}</p>
-    {repo && <p class="meta"><span>{repo.stars} stars</span><span>{repo.forks} forks</span>{repo.language && <span>{repo.language}</span>}<span>Updated {repo.updated}</span></p>}
-    <ul class="chips">{d.stack.map((s: string) => <li>{s}</li>)}</ul>
+    {merged.summary && <p class="lead">{merged.summary}</p>}
+    {repo && (
+      <p class="meta">
+        <span>{repo.stars} stars</span>
+        <span>{repo.forks} forks</span>
+        {repo.language && <span>{repo.language}</span>}
+        {repo.updated && <span>Updated {repo.updated}</span>}
+      </p>
+    )}
+    {merged.repoDescription && <p class="repo-note">{merged.repoDescription}</p>}
+    {merged.stack.length > 0 && <ul class="chips">{merged.stack.map((s: string) => <li>{s}</li>)}</ul>}
+    {repo?.topics.length ? <p class="topics">Topics: {repo.topics.join(' · ')}</p> : null}
     <div class="cta-row">
       {d.storeUrl && <a class="btn" href={d.storeUrl} rel="noopener">Get it on Google Play</a>}
       {d.githubUrl && <a class="btn line" href={d.githubUrl} rel="noopener">View code on GitHub</a>}
       <a class={d.storeUrl || d.githubUrl ? 'btn line' : 'btn'} href="/#contact">Work with me</a>
     </div>
     {d.image && <div class="shot"><img src={d.image} alt={d.imageAlt} /></div>}
-    <div class="prose"><Content /></div>
-    {readme && <div class="prose readme"><h2>From the README</h2><Fragment set:html={readme} /></div>}
+    {body.trim() && <div class="prose"><Content /></div>}
+    {merged.readmeSections.length > 0 && (
+      <div class="prose readme">
+        <h2>From the README</h2>
+        {merged.readmeSections.map((section) => (
+          <section class="readme-section" aria-labelledby={`readme-${section.id}`}>
+            <h3 id={`readme-${section.id}`}>{section.title}</h3>
+            <Fragment set:html={section.html} />
+          </section>
+        ))}
+      </div>
+    )}
   </article>
 </Base>

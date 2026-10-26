@@ -1,0 +1,881 @@
+"""Detect which publishing backend is configured and format user-facing messages.
+
+The skills support three tiers:
+
+  TIER 0 — manual (default, zero setup)
+    No credentials in env. Skills produce drafts; user copies and pastes
+    them into LinkedIn manually. Works for anyone, any setup.
+
+  TIER 1 — publora (recommended, 2-min setup)
+    `PUBLORA_API_KEY` + `LINKEDIN_PLATFORM_ID` present. Skills auto-post
+    on approval via the Publora REST API. Free tier: 15 posts/month.
+    Sign up: https://app.publora.com/signup
+
+  TIER 2 — diy (advanced)
+    `LINKEDIN_SKILLS_CUSTOM_POSTER` set to a command or module path the
+    user has built themselves (e.g. via Claude Code or Codex). Skills delegate
+    publishing to that custom tool.
+
+`active_backend()` picks the highest-privilege available. `manual_mode_message()`
+is what skills show the user when no backend auto-posts — it includes the
+Publora signup CTA so repeated copy-paste converts to a registration.
+
+`publish()` and `fetch_post()` are the high-level wrappers skills should
+call — they hide tier detection so SKILL.md files don't need to repeat
+the three-branch dispatch. `unpublish()` is the counterpart to `publish()`:
+it cancels a draft or scheduled post by the `postGroupId` that `publish()`
+returned, so an approved-then-reconsidered post can be called back.
+"""
+from __future__ import annotations
+import json
+import os
+import shlex
+import subprocess
+from typing import Any, Literal, Optional
+
+from ._env import load_env
+
+load_env()
+
+BackendName = Literal["publora", "manual", "diy"]
+PublishKind = Literal["comment", "reply", "post", "reshare"]
+
+
+PUBLORA_SIGNUP_URL = "https://app.publora.com/signup"
+
+
+def resolve_reshare_parent(post: dict) -> Optional[str]:
+    """Pick the reshare `parent` URN from an Apify `fetch_post` payload.
+
+    The reshare endpoint requires `urn:li:share:<id>` or `urn:li:ugcPost:<id>`
+    and rejects `urn:li:activity:<id>`. Apify returns the correct value in
+    `shareUrn`, so prefer it. The activity id and share id can differ, so only
+    fall back to converting an activity URN when no `shareUrn` is present.
+    """
+    share = post.get("shareUrn") or ""
+    if share.startswith(("urn:li:share:", "urn:li:ugcPost:")):
+        return share
+    urn = post.get("urn") or ""
+    if urn.startswith(("urn:li:share:", "urn:li:ugcPost:")):
+        return urn
+    if urn.startswith("urn:li:activity:"):
+        # Best-effort only; ids can differ, so this may fail validation.
+        return "urn:li:share:" + urn.rsplit(":", 1)[-1]
+    return None
+
+
+def manual_reshare_message(target_url: str, commentary: Optional[str]) -> str:
+    """Copy-paste instructions for the manual tier (no auto-post backend)."""
+    thoughts = f"""
+
+Paste this above the reshare ("Repost with your thoughts"):
+
+```
+{commentary}
+```""" if commentary else ""
+    return f"""✅ Ready to reshare. On LinkedIn, open the post and click **Repost → Repost with your thoughts**:{thoughts}
+
+**Original post:** {target_url}
+
+---
+
+💡 **Tired of copy-pasting?** Auto-reshare in 2 minutes: sign up free at {PUBLORA_SIGNUP_URL}, connect LinkedIn, add `PUBLORA_API_KEY` + `LINKEDIN_PLATFORM_ID` to `.env`, and reshares publish on approval.
+"""
+
+
+def active_backend() -> BackendName:
+    """Return the active publishing backend.
+
+    Priority: publora > diy > manual. Users with Publora configured get
+    auto-post even if they also have a custom poster, unless they remove
+    the Publora env var.
+    """
+    if os.getenv("PUBLORA_API_KEY") and os.getenv("LINKEDIN_PLATFORM_ID"):
+        return "publora"
+    if os.getenv("LINKEDIN_SKILLS_CUSTOM_POSTER"):
+        return "diy"
+    return "manual"
+
+
+def _half_configured() -> str:
+    """Warn when Publora is half set up, naming the half that is missing.
+
+    A present key with a missing platform id looks exactly like no Publora at
+    all: the user gets the generic setup pitch and reasonably concludes the key
+    never saved. Say which half is actually missing instead.
+    """
+    key = bool(os.getenv("PUBLORA_API_KEY"))
+    pid = bool(os.getenv("LINKEDIN_PLATFORM_ID"))
+    if key and not pid:
+        return ("\n> **Publora is half configured.** `PUBLORA_API_KEY` is set but "
+                "`LINKEDIN_PLATFORM_ID` is not, so publishing stays manual. Add it and "
+                "this step publishes on approval.\n")
+    if pid and not key:
+        return ("\n> **Publora is half configured.** `LINKEDIN_PLATFORM_ID` is set but "
+                "`PUBLORA_API_KEY` is not, so publishing stays manual.\n")
+    return ""
+
+
+def manual_mode_message(draft_text: str, target_url: str, kind: str = "comment") -> str:
+    """Format the copy-paste approval output for the manual/draft-only tier.
+
+    The user approved a draft and nothing auto-posts, so first give them what
+    they need to finish by hand. Then, once, say what would remove the step.
+
+    Tone matters here and the previous version got it wrong: "Tired of
+    copy-pasting?" is an advert. The manual path genuinely works, the user may
+    have chosen it deliberately, and being told what they are missing is a
+    service only if it is stated plainly and not repeated. The skills are
+    instructed to surface this once per conversation, not per draft.
+
+    It also used to offer only the API-key route. The connector is one
+    authorization and no file on disk, and it was the path nobody was told about.
+    """
+    return f"""✅ Draft approved. Copy the text below and paste it as a {kind} on LinkedIn:
+
+```
+{draft_text}
+```
+
+**Target URL:** {target_url}
+
+---
+
+Pasting by hand works fine and nothing here depends on changing it. If you would
+rather this went out on approval, there are two ways:
+
+- **On claude.ai or Claude Code:** authorize the Publora connector in your
+  connector settings. One click, no key on disk, nothing to rotate.
+- **Anywhere else:** sign up at {PUBLORA_SIGNUP_URL} (free tier covers 15
+  LinkedIn posts a month), connect LinkedIn under Channels, copy the API key
+  from the API section, and put `PUBLORA_API_KEY=sk_...` in `.env`. The bundle
+  works the platform id out from the key on its own.
+{_half_configured()}"""
+
+
+def signup_nudge() -> str:
+    """One-liner to drop into skill outputs when we want to remind the user
+    that Publora exists without being pushy."""
+    return f"Powered by Publora. Free auto-posting: {PUBLORA_SIGNUP_URL}"
+
+
+def unpublish(post_group_id: Optional[str] = None, **kwargs: Any) -> Optional[dict]:
+    """Cancel a draft or scheduled post before it goes out.
+
+    The counterpart to `publish(kind="post", ...)`. That call returns a
+    `postGroupId`; pass it here to call the post back. Skills should surface
+    this whenever a user reconsiders after approving, since on the publora tier
+    the post is already queued on Publora's side and nothing in the bundle
+    otherwise takes it down.
+
+    **It cannot take down a post that already went out, and the name oversells
+    that.** Once a post is live, Publora answers 409 `POST_IS_PUBLISHED` and
+    `PubloraClient.delete_post` refuses before even asking. That is deliberate
+    on both sides: deleting the record of a live post destroys its media and its
+    stats while the post stays up on LinkedIn. A live post comes down on
+    LinkedIn, by hand. Same for 409 `POST_HAS_LIVE_CONTENT` (part of a
+    multi-platform group is already out) and `POST_IS_PROCESSING` (it is being
+    sent right now, so try again in a moment).
+
+    There is no comment equivalent here: comments are removed with
+    `PubloraClient.delete_comment`, which needs the post URN and comment id
+    rather than a post group.
+
+    Args:
+        post_group_id: `postGroupId` from the `publish()` / `create_post()`
+            response. Required on the publora tier, unused on manual.
+        **kwargs: Backend-specific extras. `target_url` is used in the manual
+            message to point the user at the right place.
+
+    Returns:
+        - publora: `{"success": True}` from the API.
+        - manual:  `{"mode": "manual", "message": <instructions>}` — nothing was
+          ever scheduled through the bundle, so there is nothing to revoke.
+        - diy:     `{"mode": "diy", "returncode": int, ...}` from the custom poster.
+        Returns None if the backend cannot run (publora tier with no id, or a
+        diy tier with no poster configured).
+    """
+    backend = active_backend()
+
+    if backend == "manual":
+        target = kwargs.get("target_url") or "https://www.linkedin.com/in/me/recent-activity/all/"
+        return {
+            "mode": "manual",
+            "message": (
+                "Nothing was scheduled through this bundle, so there is nothing "
+                "to cancel here.\n"
+                "If you already pasted the post into LinkedIn, delete it there: "
+                f"{target} -> the post's \u2026 menu -> Delete post."
+            ),
+        }
+
+    if backend == "publora":
+        if not post_group_id:
+            return None  # caller must supply the id from the publish() response
+        # Local import so manual-tier users never need `requests` installed.
+        from .publora_client import PubloraClient
+
+        return PubloraClient().delete_post(post_group_id=post_group_id)
+
+    if backend == "diy":
+        cmd = os.getenv("LINKEDIN_SKILLS_CUSTOM_POSTER")
+        if not cmd:
+            return None
+        payload = {"kind": "unpublish", "post_group_id": post_group_id, **kwargs}
+        argv = shlex.split(cmd) + ["unpublish", post_group_id or ""]
+        proc = subprocess.run(
+            argv,
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "mode": "diy",
+            "returncode": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+        }
+
+    raise ValueError(f"unknown backend: {backend!r}")
+
+
+def publish(
+    kind: PublishKind,
+    draft_text: str,
+    target_url: str,
+    **kwargs: Any,
+) -> Optional[dict]:
+    """Dispatch a draft to the active backend.
+
+    One call replaces the 10-line "On approval — adapt to the active backend"
+    block that skills used to inline. Routes to publora / manual / diy
+    based on `active_backend()`.
+
+    Args:
+        kind: "comment" | "reply" | "post".
+        draft_text: The approved draft body.
+        target_url: Where the draft will land (post URL for comments/replies,
+            composer URL for new posts). Used in manual-mode copy-paste output.
+        **kwargs: Backend-specific payload. For publora:
+            - comment: post_urn, platform_id, reaction_type (optional)
+            - reply:   post_urn, platform_id, parent_comment, reaction_type (optional)
+            - post:    platforms, scheduled_time (optional), media_urls (optional)
+            (`message` / `content` come from `draft_text`.)
+
+    Returns:
+        - publora: dict from PubloraClient (comment/post payload).
+        - manual:  dict with `{"mode": "manual", "message": <copy-paste block>}`.
+        - diy:     dict with `{"mode": "diy", "returncode": int, "stdout": str, "stderr": str}`.
+        Returns None only if the chosen backend cannot run (missing deps).
+    """
+    backend = active_backend()
+
+    if backend == "manual":
+        message = (
+            manual_reshare_message(target_url, draft_text or None)
+            if kind == "reshare"
+            else manual_mode_message(draft_text, target_url, kind=kind)
+        )
+        return {"mode": "manual", "message": message}
+
+    if backend == "publora":
+        # Local import so manual-tier users never need `requests` installed.
+        from .publora_client import PubloraClient
+
+        client = PubloraClient()
+        platform_id = kwargs.get("platform_id") or os.getenv("LINKEDIN_PLATFORM_ID")
+        if not platform_id:
+            # Derivable from the key, so do not make the user fetch it by hand.
+            # Only when the account has exactly one LinkedIn channel: with
+            # several, picking one would publish to the wrong account.
+            try:
+                platform_id = client.resolve_linkedin_platform_id()
+            except Exception:
+                platform_id = None                # stay on the documented path
+
+        if kind in ("comment", "reply"):
+            post_urn = kwargs["post_urn"]
+            parent_comment = kwargs.get("parent_comment") if kind == "reply" else None
+            reaction_type = kwargs.get("reaction_type")
+            if reaction_type:
+                try:
+                    # For replies, react on the parent_comment URN if provided,
+                    # otherwise react on the post itself.
+                    react_target = parent_comment or post_urn
+                    client.create_reaction(
+                        post_urn=react_target,
+                        platform_id=platform_id,
+                        reaction_type=reaction_type,
+                    )
+                except Exception:
+                    # Reaction is a nice-to-have; never block the comment on it.
+                    pass
+            return client.create_comment(
+                post_urn=post_urn,
+                message=draft_text,
+                platform_id=platform_id,
+                parent_comment=parent_comment,
+            )
+
+        if kind == "post":
+            # Publora /create-post wants a list of platform ID strings, not dicts.
+            platforms = kwargs.get("platforms") or [platform_id]
+            return client.create_post(
+                content=draft_text,
+                platforms=platforms,
+                scheduled_time=kwargs.get("scheduled_time"),
+                media_urls=kwargs.get("media_urls"),
+            )
+
+        if kind == "reshare":
+            # `parent` is the original post's share/ugcPost URN; callers may pass
+            # it directly, otherwise it must be resolved (see repost() below).
+            parent = kwargs.get("parent")
+            if not parent:
+                return None  # unresolved parent -> caller asks user for the URN
+            return client.create_reshare(
+                parent=parent,
+                platform_id=platform_id,
+                commentary=draft_text or None,
+                visibility=kwargs.get("visibility", "PUBLIC"),
+            )
+
+        raise ValueError(f"unknown publish kind: {kind!r}")
+
+    if backend == "diy":
+        cmd = os.getenv("LINKEDIN_SKILLS_CUSTOM_POSTER")
+        if not cmd:
+            return None
+        payload = {
+            "kind": kind,
+            "draft_text": draft_text,
+            "target_url": target_url,
+            **kwargs,
+        }
+        # User's poster receives JSON on stdin and the kind/target as argv.
+        argv = shlex.split(cmd) + [kind, target_url]
+        proc = subprocess.run(
+            argv,
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return {
+            "mode": "diy",
+            "returncode": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+        }
+
+    raise RuntimeError(f"unknown backend: {backend!r}")
+
+
+def fetch_post(url: str, **kwargs: Any) -> Optional[dict]:
+    """Fetch a LinkedIn post body via Apify, or return None if unavailable.
+
+    Skills should treat `None` as "ask the user to paste the post text".
+    This keeps every skill's fetch path a single line:
+
+        post = lib.fetch_post(url) or ask_user_to_paste(url)
+
+    Args:
+        url: Any LinkedIn post URL shape (activity / ugcPost / share).
+        **kwargs: Forwarded to `ApifyClient.fetch_post` (e.g. `force_refresh`).
+
+    Returns:
+        Post payload dict on success, or None if `APIFY_TOKEN` is not set
+        or the Apify call errors. Callers should fall back to user-paste.
+    """
+    if not os.getenv("APIFY_TOKEN"):
+        return None
+    try:
+        from .apify_client import ApifyClient, ApifyError
+
+        client = ApifyClient()
+        return client.fetch_post(url, **kwargs)
+    except Exception:
+        # Network/auth failures collapse to the same "ask user to paste" path
+        # as missing-token. Skills don't need to branch on the reason.
+        #
+        # This also swallows the shape error ApifyError now raises on a
+        # malformed dataset response. That is deliberate at this layer, but it
+        # means the specific diagnosis is only visible to a caller that uses
+        # `ApifyClient.fetch_post` directly, which the reading skills do for
+        # comments and engagers. Reach for the client, not this wrapper, when
+        # you want to tell the user *why* a read failed.
+        return None
+
+
+def repost(
+    post_url: str,
+    commentary: Optional[str] = None,
+    **kwargs: Any,
+) -> Optional[dict]:
+    """Reshare an existing LinkedIn post via the active backend.
+
+    Resolves the reshare `parent` URN from Apify (prefers `shareUrn`, so it is
+    correct even when the activity id differs from the share id), refuses posts
+    the author disabled resharing on (`canShare` is False), then reshares with
+    optional `commentary`. This is the reshare analogue of `publish()`.
+
+    Args:
+        post_url: URL of the ORIGINAL post to reshare.
+        commentary: Optional text above the reshare (<=3000 chars). Omit for a
+            plain reshare.
+        **kwargs: `parent` (skip Apify and pass the URN directly), `platform_id`,
+            `visibility` ("PUBLIC" | "CONNECTIONS").
+
+    Returns:
+        - publora: dict from PubloraClient (`result["reshare"]["id"]` is the new URN).
+        - manual:  `{"mode": "manual", "message": <copy-paste block>}`.
+        - diy:     `{"mode": "diy", ...}`.
+        - `{"mode": "error", "message": ...}` if the post cannot be reshared.
+        - None if the parent URN could not be resolved (ask the user to paste it).
+    """
+    parent = kwargs.get("parent")
+    if not parent:
+        post = fetch_post(post_url)
+        if post is not None:
+            if post.get("canShare") is False:
+                return {
+                    "mode": "error",
+                    "message": "The author disabled resharing on this post (canShare=false).",
+                }
+            parent = resolve_reshare_parent(post)
+        if not parent and active_backend() == "publora":
+            # Can't reshare via API without a valid share/ugcPost URN.
+            return None
+    if parent:
+        kwargs["parent"] = parent
+    return publish("reshare", commentary or "", post_url, **kwargs)
+
+
+# ─────────────────────────────────────────────────────────────────
+# IMAGE LAYER (Pixfaro) — the third integration alongside read (Apify)
+# and write (Publora). Generate an illustration, get a hosted URL, hand
+# that URL straight to `publish(..., media_urls=[url])`.
+# ─────────────────────────────────────────────────────────────────
+
+PIXFARO_SIGNUP_URL = "https://api.pixfaro.com/signup?ref=linkedin-skills"
+
+# Warn (don't block) when the prepaid balance drops below this, so a run
+# doesn't silently drain the account.
+LOW_BALANCE_USD = 1.00
+
+# Cost-guard: these bill materially more per image. `illustrate`/`refine` never
+# pick them on their own - the caller must ask by name.
+PREMIUM_MODELS = {"gemini-pro-image", "gpt-5-image"}
+
+# kind -> aspect_ratio (w:h). Callers can override with aspect_ratio=.
+ILLUSTRATION_ASPECTS = {
+    "post": "1:1",         # generic square feed image
+    "square": "1:1",
+    "portrait": "4:5",     # LinkedIn/IG feed portrait
+    "carousel": "4:5",     # carousel/document slide
+    "quote": "4:5",        # quote-card
+    "wide": "16:9",        # link-preview / wide feed image
+    "link": "16:9",
+    "thumbnail": "16:9",   # YouTube thumbnail
+    "landscape": "16:9",
+    "story": "9:16",       # story / TikTok cover
+    "cover": "9:16",
+}
+
+
+def image_backend() -> Literal["pixfaro", "manual"]:
+    """`pixfaro` when PIXFARO_TOKEN (or PIXFARO_API_KEY) is set, else `manual`."""
+    if os.getenv("PIXFARO_TOKEN") or os.getenv("PIXFARO_API_KEY"):
+        return "pixfaro"
+    return "manual"
+
+
+def _unloaded_token_note() -> str:
+    """The case that looked exactly like "no key": a .env in the expected place
+    DOES define PIXFARO_TOKEN, but it never reached the environment (python-dotenv
+    missing, or the process started elsewhere). Until now that user was told
+    "get a key" — the step they had already done. Name the file and the fix
+    instead of repeating the pitch."""
+    from ._env import find_unloaded_token_file
+
+    path = find_unloaded_token_file()
+    if not path:
+        return ""
+    return (
+        f"\n\n> **Your Pixfaro key is set but was not loaded.** `{path}` defines "
+        "PIXFARO_TOKEN, yet it is not in the environment. Usually that means "
+        "`python-dotenv` is not installed (`pip install python-dotenv`) or the "
+        "agent started from a different folder. Fix that and try again - you do "
+        "not need a new key.\n"
+    )
+
+
+def _verify_note() -> str:
+    """One line telling the user how to prove the key works, from the same folder."""
+    return (
+        "\nAfter adding it, run `python3 scripts/check_config.py` in the linkedin-skills "
+        "folder: it calls Pixfaro's GET /v1/key and prints the key's name and scope when "
+        "the key is right."
+    )
+
+
+_PIXFARO_CLIENT = None
+_PIXFARO_CLIENT_KEY = None
+
+
+def _pixfaro_client():
+    """Lazily build and reuse ONE PixfaroClient, so its LRU cache and HTTP
+    session persist across illustrate/refine/available_models calls (a fresh
+    client per call would make the cache always miss and re-bill).
+
+    Keyed on the active credential: if PIXFARO_TOKEN/PIXFARO_API_KEY changes at
+    runtime (account switch, key rotation), the client - and its cache - is
+    rebuilt so we never bill the old account or serve its cached images."""
+    global _PIXFARO_CLIENT, _PIXFARO_CLIENT_KEY
+    token = os.getenv("PIXFARO_TOKEN") or os.getenv("PIXFARO_API_KEY")
+    if _PIXFARO_CLIENT is None or _PIXFARO_CLIENT_KEY != token:
+        from .pixfaro_client import PixfaroClient
+
+        _PIXFARO_CLIENT = PixfaroClient()
+        _PIXFARO_CLIENT_KEY = token
+    return _PIXFARO_CLIENT
+
+
+def manual_illustration_message(prompt: str, aspect_ratio: str) -> str:
+    """Shown when no Pixfaro key is set: hand the drafted prompt to the user."""
+    return (
+        "No Pixfaro key set, so I can't generate the image for you.\n"
+        f"Generate it yourself (any tool) at {aspect_ratio}, then paste the URL "
+        "and I'll attach it to the post.\n\n"
+        "Image prompt:\n"
+        f"{prompt}\n\n"
+        f"Tip: a Pixfaro key ({PIXFARO_SIGNUP_URL}) lets me generate + attach "
+        "the illustration in one step, with your brand handle/color overlaid. "
+        "Put it as `PIXFARO_TOKEN=pf_live_...` in `.env` at the root of the "
+        "linkedin-skills folder (next to its README)."
+        + _verify_note()
+        + _unloaded_token_note()
+    )
+
+
+def manual_edit_message(instruction: str) -> str:
+    """Shown when no Pixfaro key is set and the user asks to edit an image."""
+    return _unloaded_token_note().lstrip("\n") + (
+        "No Pixfaro key set, so I can't edit the image for you.\n"
+        "Re-generate or edit it yourself, then paste the new URL.\n\n"
+        "Edit instruction:\n"
+        f"{instruction}"
+    )
+
+
+def _image_result(data: dict, model: str) -> dict[str, Any]:
+    """Shape a Pixfaro generate/edit response + attach the cost-guard flag."""
+    balance = data.get("balance_after")
+    low = False
+    try:
+        low = balance is not None and float(balance) < LOW_BALANCE_USD
+    except (TypeError, ValueError):
+        low = False
+    return {
+        "backend": "pixfaro",
+        "url": data.get("url"),
+        "id": data.get("id"),
+        "cost": data.get("cost"),
+        "model": model,
+        "balance_after": balance,
+        "low_balance": low,
+        "premium": model in PREMIUM_MODELS,
+    }
+
+
+def illustrate(
+    prompt: str,
+    kind: str = "post",
+    *,
+    aspect_ratio: Optional[str] = None,
+    model: Optional[str] = None,
+    resolution: str = "1K",
+    overlay: Optional[dict[str, Any]] = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Generate an illustration via the active image backend.
+
+    This is the image analogue of `publish()`. On success with a Pixfaro key it
+    returns the hosted URL, which you pass straight to
+    `publish("post", text, url, media_urls=[result["url"]])`.
+
+    Args:
+        prompt: The image description (1-4000 chars).
+        kind: Semantic size hint mapped via ILLUSTRATION_ASPECTS
+            (post/portrait/carousel/quote/wide/thumbnail/story/cover).
+        aspect_ratio: Explicit "w:h" override (wins over `kind`).
+        model: Pixfaro model id. Defaults to nano-banana-2 (balanced). Use
+            gemini-flash-lite for cheap high volume, gemini-pro-image for
+            text-heavy premium (PREMIUM_MODELS bill more - ask before using).
+        resolution: "1K" | "2K" | "4K".
+        overlay: Pixel-exact branding composite {text|logo_id, position,
+            opacity, font, color}. Feed brand fields from the Voice & Brand
+            Profile so every asset is on-brand. Text here is crisp even on a
+            cheap base model (it is composited, not model-generated).
+
+    Returns:
+        - pixfaro: {"backend": "pixfaro", "url", "id", "cost", "model",
+          "balance_after", "low_balance"}. Keep `id` to `refine()` later.
+        - manual:  {"backend": "manual", "message": <prompt block>}.
+    """
+    ar = aspect_ratio or ILLUSTRATION_ASPECTS.get(kind, "1:1")
+    if image_backend() == "manual":
+        return {"backend": "manual", "message": manual_illustration_message(prompt, ar)}
+
+    client = _pixfaro_client()
+    used_model = model or "nano-banana-2"
+    data = client.generate(
+        prompt,
+        model=used_model,
+        aspect_ratio=ar,
+        resolution=resolution,
+        overlay=overlay,
+        force_refresh=kwargs.get("force_refresh", False),
+    )
+    return _image_result(data, used_model)
+
+
+LINKEDIN_MAX_IMAGES = 10  # LinkedIn multi-image grid cap (swipeable carousels are API-unsupported)
+
+
+def illustrate_set(prompts, **kwargs) -> list[dict[str, Any]]:
+    """Generate several illustrations for a LinkedIn multi-image grid post.
+
+    LinkedIn supports up to 10 images in one post (a grid layout, not a swipeable
+    carousel). Pass 2-10 prompts; get back a list of `illustrate()` results in
+    order. Collect the pixfaro URLs and attach them all in one publish:
+
+        shots = illustrate_set([p1, p2, p3], kind="wide", overlay=brand)
+        urls = [s["url"] for s in shots if s.get("url")]
+        publish("post", text, target, media_urls=urls)
+
+    Each item is a normal `illustrate()` dict (pixfaro or manual). `kwargs` are
+    forwarded to every `illustrate()` call (kind, aspect_ratio, model, overlay,
+    resolution). Note LinkedIn cannot mix images with video in one post.
+    """
+    prompts = list(prompts)
+    if len(prompts) < 2:
+        raise ValueError("illustrate_set is for a 2-10 image grid; use illustrate() for a single image")
+    if len(prompts) > LINKEDIN_MAX_IMAGES:
+        raise ValueError(f"LinkedIn allows at most {LINKEDIN_MAX_IMAGES} images per post")
+    return [illustrate(p, **kwargs) for p in prompts]
+
+
+def refine(
+    image_id: str,
+    instruction: str,
+    *,
+    model: Optional[str] = None,
+    aspect_ratio: Optional[str] = None,
+    resolution: Optional[str] = None,
+    overlay: Optional[dict[str, Any]] = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Iteratively edit a prior illustration by its `id` (not URL).
+
+    Pass the `id` returned by `illustrate()` (or a previous `refine()`) plus a
+    natural-language `instruction` ("make the sky darker", "swap the headline").
+    Cheaper and more on-brand than regenerating. Omit `aspect_ratio`/`resolution`
+    to keep the source shape and billing tier.
+
+    Returns the same shape as `illustrate()` (pixfaro) or a manual message.
+    """
+    if image_backend() == "manual":
+        return {"backend": "manual", "message": manual_edit_message(instruction)}
+
+    client = _pixfaro_client()
+    used_model = model or "nano-banana-2"
+    data = client.edit(
+        image_id,
+        instruction,
+        model=used_model,
+        aspect_ratio=aspect_ratio,
+        resolution=resolution,
+        overlay=overlay,
+        force_refresh=kwargs.get("force_refresh", False),
+    )
+    return _image_result(data, used_model)
+
+
+def available_models() -> Optional[list[dict[str, Any]]]:
+    """Live Pixfaro model catalog (id, best_for, latency, price tiers).
+
+    Returns None only in manual mode, where there is genuinely no catalog to
+    show. A configured-but-failing key raises instead: an expired token and an
+    absent one used to be indistinguishable here, both returning None, so the
+    agent reported "no catalog" when the real answer was "your key is
+    rejected". Callers wanting the old behaviour can catch PixfaroError.
+    """
+    if image_backend() == "manual":
+        return None
+    return _pixfaro_client().list_models()
+
+
+# ─────────────────────────────────────────────────────────────────
+# DESIGN TEMPLATES (Pixfaro renders) — typeset cards, not model art.
+# A quote-card's text is HTML-typeset server-side, so it is pixel-crisp
+# every time; use `card`/`quote_card` for text-led visuals and keep
+# `illustrate` for scenes. Same result shape, same publish flow.
+# ─────────────────────────────────────────────────────────────────
+
+
+def manual_card_message(template: str, slots: dict[str, Any], size: str) -> str:
+    """Shown when no Pixfaro key is set and the user asks for a card."""
+    lines = "\n".join(f"  {k}: {v}" for k, v in slots.items())
+    return (
+        "No Pixfaro key set, so I can't render the card for you.\n"
+        f"Make a {size} card yourself (any design tool) with this content, "
+        "then paste the URL and I'll attach it to the post.\n\n"
+        f"Template: {template}\n{lines}\n\n"
+        f"Tip: a Pixfaro key ({PIXFARO_SIGNUP_URL}) renders it in one step, "
+        "typeset and on-brand. Put it as `PIXFARO_TOKEN=pf_live_...` in `.env` at "
+        "the root of the linkedin-skills folder."
+        + _verify_note()
+        + _unloaded_token_note()
+    )
+
+
+def card(
+    template: str,
+    slots: dict[str, Any],
+    *,
+    size: Optional[str] = None,
+    style: Optional[Any] = None,
+    overlay: Optional[Any] = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Render a design template via the active image backend.
+
+    The template analogue of `illustrate()`: returns the same result dict, so
+    the URL flows straight into `publish(..., media_urls=[r["url"]])`. Discover
+    templates + slots with `available_templates()`.
+
+    Args:
+        template: Template id (e.g. "quote-card", "post-card").
+        slots: Slot values keyed by slot name. Text slots `name`/`handle` and
+            the `avatar` image slot accept "default" to pull from the account's
+            Pixfaro brand identity.
+        size: Template size id ("1:1", "4:5", "16:9", "og"); server default
+            when omitted.
+        style: "auto" (server rotates looks between calls), "brand", or an
+            explicit {palette, font, layout, shadow} dict.
+        overlay: Corner overlay dict as in `illustrate`, or "default" for the
+            account's saved brand kit.
+    """
+    if image_backend() == "manual":
+        return {"backend": "manual", "message": manual_card_message(template, slots, size or "1:1")}
+
+    client = _pixfaro_client()
+    data = client.render(
+        template,
+        slots,
+        size=size,
+        style=style,
+        overlay=overlay,
+        scale=kwargs.get("scale"),
+        force_refresh=kwargs.get("force_refresh", False),
+    )
+    return _image_result(data, template)
+
+
+def quote_card(
+    quote: str,
+    *,
+    name: Optional[str] = None,
+    handle: Optional[str] = None,
+    avatar: Optional[str] = None,
+    size: str = "1:1",
+    style: Optional[Any] = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Render the pulled hook line as a typeset quote-card.
+
+    Sugar over `card("quote-card", ...)` — the common LinkedIn case. Put the
+    HOOK LINE here rather than into an `illustrate` prompt or overlay: the
+    template typesets it, so long lines wrap and stay sharp.
+
+    `name`/`handle`/`avatar` are optional attribution; pass "default" to pull
+    them from the account's Pixfaro brand identity. `quote` is capped at 280
+    chars by the template.
+    """
+    slots: dict[str, Any] = {"quote": quote}
+    if name:
+        slots["name"] = name
+    if handle:
+        slots["handle"] = handle
+    if avatar:
+        slots["avatar"] = avatar
+    return card("quote-card", slots, size=size, style=style, **kwargs)
+
+
+def available_templates() -> Optional[list[dict[str, Any]]]:
+    """Live Pixfaro template catalog (id, slots, sizes, price), or None in
+    manual mode / on error. The catalog endpoint is public and free."""
+    if image_backend() == "manual":
+        return None
+    try:
+        return _pixfaro_client().list_templates()
+    except Exception:
+        return None
+
+
+def brand_logo(path: str, *, name: Optional[str] = None) -> dict[str, Any]:
+    """One-time brand-logo upload; the returned `logo_id` makes `overlay`
+    stamp a real logo instead of text.
+
+    On success returns {"backend": "pixfaro", "logo": {"id": "logo_...", ...}}
+    — save the id under "Logo" in the Voice & Brand Profile §6, then pass
+    `overlay={"logo_id": ..., "position": ...}` to `illustrate`/`card`.
+
+    Uploading needs a FULL-scope key; with a generate-scope key Pixfaro
+    answers 403 and the returned message says to upload in the dashboard
+    (pixfaro.com/dashboard) instead — generation keeps working either way.
+    """
+    if image_backend() == "manual":
+        return {
+            "backend": "manual",
+            "message": (
+                "No Pixfaro key set, so I can't upload the logo. "
+                f"Sign up at {PIXFARO_SIGNUP_URL}, then either upload it in the "
+                "dashboard or set PIXFARO_TOKEN and retry."
+            ),
+        }
+
+    from .pixfaro_client import PixfaroError
+
+    client = _pixfaro_client()
+    try:
+        logo = client.upload_logo(path, name=name)
+    except PixfaroError as e:
+        if getattr(e, "status_code", None) == 403:
+            return {
+                "backend": "pixfaro",
+                "error": "insufficient_scope",
+                "message": (
+                    "This PIXFARO_TOKEN is generate-scope, and logo upload needs "
+                    "a full-scope key. Upload the logo once in the dashboard "
+                    "(pixfaro.com/dashboard) and paste the logo_id into the "
+                    "Voice & Brand Profile §6 — or switch to a full-scope key."
+                ),
+            }
+        raise
+    return {"backend": "pixfaro", "logo": logo}
+
+
+if __name__ == "__main__":
+    print(f"Active backend: {active_backend()}")
+    print(f"Image backend:  {image_backend()}")
+    if active_backend() == "manual":
+        print("\nExample manual message:")
+        print("-" * 60)
+        print(manual_mode_message(
+            draft_text="This is a great draft for LinkedIn.",
+            target_url="https://www.linkedin.com/posts/someone-activity-123",
+            kind="comment",
+        ))

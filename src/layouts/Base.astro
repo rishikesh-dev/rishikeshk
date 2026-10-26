@@ -1,68 +1,110 @@
 ---
-import '@fontsource-variable/playfair-display';
-import '@fontsource-variable/source-serif-4';
-import '../styles/global.css';
-import { site } from '../data/site';
+import "@fontsource-variable/playfair-display";
+import "@fontsource-variable/source-serif-4";
+import "../styles/global.css";
+import { site } from "../data/site";
 
-const { title = `${site.name} – ${site.role}`, description = site.description, image = '/images/sketch.jpg' } = Astro.props;
+const {
+  title = `${site.name} – ${site.role}`,
+  description = site.description,
+  image = "/images/sketch.jpg",
+} = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
 const ogImage = new URL(image, canonical);
 const sameAs = [site.github, site.linkedin, site.playStoreDev].filter(Boolean);
-const ld = { '@context': 'https://schema.org', '@type': 'Person', name: site.name, jobTitle: site.role, url: canonical.origin, ...(sameAs.length ? { sameAs } : {}) };
+const ld = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.name,
+  jobTitle: site.role,
+  url: canonical.origin,
+  ...(sameAs.length ? { sameAs } : {}),
+};
 const year = new Date().getFullYear();
 ---
+
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{title}</title>
-  <meta name="description" content={description} />
-  <link rel="canonical" href={canonical} />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content={title} />
-  <meta property="og:description" content={description} />
-  <meta property="og:image" content={ogImage} />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="theme-color" content="#E9DBBE" />
-  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
-</head>
-<body>
-<div class="wrap">
-  <div class="bar">
-    <div class="top"></div>
-    <nav aria-label="Main" id="nav">
-      <a class="logo" href="/">RISHIKESH K</a>
-      <div class="links" id="links">
-        <a href="/">Home</a><a href="/#work">Projects</a><a href="/#about">About</a><a href="/#skills">Skills</a><a class="only-m" href="/#contact">Contact</a>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#E9DBBE" />
+    <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="bar">
+        <div class="top"></div>
+        <nav aria-label="Main" id="nav">
+          <a class="logo" href="/">RISHIKESH K</a>
+          <div class="links" id="links">
+            <a href="/">Home</a><a href="/#work">Projects</a><a href="/#about"
+              >About</a
+            ><a href="/#skills">Skills</a><a class="only-m" href="/#contact"
+              >Contact</a
+            >
+          </div>
+          <button
+            class="menu"
+            type="button"
+            id="menu"
+            aria-expanded="false"
+            aria-controls="links">Menu</button
+          >
+          <a class="cta" href="/#contact">Contact</a>
+        </nav>
       </div>
-      <button class="menu" type="button" id="menu" aria-expanded="false" aria-controls="links">Menu</button>
-      <a class="cta" href="/#contact">Contact</a>
-    </nav>
-  </div>
-  <slot />
-  <footer>
-    <span>© {year} {site.name}</span>
-    <span class="flinks">
-      {site.github && <a href={site.github} rel="me">GitHub</a>}
-      {site.linkedin && <a href={site.linkedin} rel="me">LinkedIn</a>}
-      {site.playStoreDev && <a href={site.playStoreDev} rel="me">Google Play</a>}
-      <span>{site.role}, {site.location}</span>
-    </span>
-  </footer>
-</div>
-<script>
-  const nav = document.getElementById('nav');
-  const btn = document.getElementById('menu');
-  btn?.addEventListener('click', () => {
-    const open = nav!.classList.toggle('open');
-    btn.setAttribute('aria-expanded', String(open));
-  });
-  document.querySelectorAll('#links a').forEach((a) => a.addEventListener('click', () => {
-    nav!.classList.remove('open');
-    btn?.setAttribute('aria-expanded', 'false');
-  }));
-</script>
-</body>
+      <slot />
+      <footer>
+        <span>© {year} {site.name}</span>
+        <span class="flinks">
+          {
+            site.github && (
+              <a href={site.github} rel="me">
+                GitHub
+              </a>
+            )
+          }
+          {
+            site.linkedin && (
+              <a href={site.linkedin} rel="me">
+                LinkedIn
+              </a>
+            )
+          }
+          {
+            site.playStoreDev && (
+              <a href={site.playStoreDev} rel="me">
+                Google Play
+              </a>
+            )
+          }
+          <span>{site.role}, {site.location}</span>
+        </span>
+      </footer>
+    </div>
+    <script>
+      const nav = document.getElementById("nav");
+      const btn = document.getElementById("menu");
+      btn?.addEventListener("click", () => {
+        const open = nav!.classList.toggle("open");
+        btn.setAttribute("aria-expanded", String(open));
+      });
+      document.querySelectorAll("#links a").forEach((a) =>
+        a.addEventListener("click", () => {
+          nav!.classList.remove("open");
+          btn?.setAttribute("aria-expanded", "false");
+        }),
+      );
+    </script>
+  </body>
 </html>

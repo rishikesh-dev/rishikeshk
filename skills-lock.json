@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "linkedin-marketing": {
+      "source": "sergebulaev/linkedin-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "43013c9305be227efa02e3ce83fef904ef6e3ee2ca2750b8c62b2aaca7bca8de"
+    }
+  }
+}

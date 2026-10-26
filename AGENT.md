@@ -29,13 +29,13 @@ Style rules: thick black rules and borders, hairline dividers, sharp corners, nu
 - Do not change the tokens above.
 
 ## Routes and content
-- `/` one page: Hero, Featured Works, More on the way, About, Skills (pubspec block), Contact.
+- `/` one page: Hero, Featured Works, More projects, More on the way, About, Skills (pubspec block), Contact.
 - `/apps/[slug]/` one case study per app.
-- App content comes from Firestore `projects` at build time (`src/lib/appsLoader.ts`), through the public REST API. No private keys. If Firestore returns nothing, the site uses `src/content/apps/*.md` (schema in `src/content.config.ts`).
-- GitHub stats and README text come from `src/lib/github.ts` at build time. Failures must never break the build.
+- App content comes only from Firestore `projects` at build time (`src/lib/appsLoader.ts`), through the public REST API. No local project files, no hardcoded project arrays. If Firestore returns nothing, the home page shows an empty project state. `featured: true` controls Featured Work; `published: false` hides a project. Non-featured `status: "soon"` projects populate "More on the way".
+- GitHub stats and README text come from `src/lib/github.ts` at build time. README HTML is sanitized and split into sections. Failures must never break the build.
 - Contact messages are saved to Firestore `messages` from the browser (`src/components/ContactForm.astro`). Security comes from `firestore.rules`.
 - Never put a private key or service account in this repo or in Actions.
-- Personal details live in `src/data/site.ts`. Placeholder cards live in `src/data/soon.ts`.
+- Personal details live in `src/data/site.ts`.
 
 ## Deploy
 GitHub Pages from `main` with `.github/workflows/deploy.yml`. Node 22, npm only (keep `package-lock.json`, no pnpm).
@@ -44,4 +44,4 @@ GitHub Pages from `main` with `.github/workflows/deploy.yml`. Node 22, npm only 
 1. `npm run build` passes with no warnings.
 2. Checked at 1440px and 390px.
 3. Every link works. Contact form sends (or falls back to email).
-4. Case study text is real, not `[bracketed]`.
+4. Case study text is real and lives in Firestore, not in local placeholder files.

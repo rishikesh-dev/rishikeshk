@@ -1,16 +1,17 @@
 ---
-import { getApps } from '../lib/apps';
+import { getProjectGroups } from '../lib/apps';
 import { getRepo } from '../lib/github';
 import { fsDoc } from '../lib/firestore';
 import Base from '../layouts/Base.astro';
 import ProjectRow from '../components/ProjectRow.astro';
+import ProjectIndex from '../components/ProjectIndex.astro';
 import Pubspec from '../components/Pubspec.astro';
 import ContactForm from '../components/ContactForm.astro';
 import { site } from '../data/site';
-import { soon } from '../data/soon';
 
-const projects = await getApps();
-const repos = await Promise.all(projects.map((project) => getRepo(project.data.githubUrl)));
+const { featured, upcoming, others } = await getProjectGroups();
+// Only fetch GitHub metadata for projects that actually render as feature rows.
+const repos = await Promise.all(featured.map((project) => getRepo(project.data.githubUrl)));
 const bio = await fsDoc('portfolio/bio');
 ---
 <Base>
@@ -26,19 +27,34 @@ const bio = await fsDoc('portfolio/bio');
 
   <section class="s" id="work">
     <p class="label"><b>02</b>Featured Works</p>
-    {projects.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} />)}
-    <div class="more">
-      <h3>More on the way</h3>
-      <div class="soon">
-        {soon.map((s) => (
-          <article class="ph">
-            <span class="st">{s.status}</span>
-            <div><h4>{s.title}</h4><p>{s.text}</p></div>
-            <span class="cat">{s.category}</span>
-          </article>
-        ))}
+    {featured.length > 0
+      ? featured.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} />)
+      : <p class="empty-note">{others.length + upcoming.length > 0 ? 'Nothing is featured right now. Browse every project below.' : 'No projects are published yet.'}</p>}
+    {others.length > 0 && (
+      <div class="more project-index">
+        <h3>More projects</h3>
+        <div class="index">
+          {others.map((p, i) => <ProjectIndex project={p} index={i} />)}
+        </div>
       </div>
-    </div>
+    )}
+    {upcoming.length > 0 && (
+      <div class="more">
+        <h3>More on the way</h3>
+        <div class="soon">
+          {upcoming.map((p) => (
+            <article class="ph">
+              <span class="st">Coming soon</span>
+              <div>
+                <h4><a href={`/apps/${p.id}/`}>{p.data.title}</a></h4>
+                {p.data.summary && <p>{p.data.summary}</p>}
+              </div>
+              <span class="cat">{p.data.kind}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+    )}
   </section>
 
   <section class="s about" id="about">
