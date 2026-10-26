@@ -1,8 +1,10 @@
 ---
 import { site } from '../data/site';
 const action = site.formEndpoint || `mailto:${site.email}`;
+const fsProject = import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ?? '';
+const fsKey = import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '';
 ---
-<form class="form" id="contact-form" method="post" action={action} enctype={site.formEndpoint ? undefined : 'text/plain'} data-endpoint={site.formEndpoint} data-email={site.email}>
+<form class="form" id="contact-form" method="post" action={action} enctype={site.formEndpoint ? undefined : 'text/plain'} data-endpoint={site.formEndpoint} data-fs-project={fsProject} data-fs-key={fsKey} data-email={site.email}>
   <div class="two">
     <label>Name<input name="name" autocomplete="name" required /></label>
     <label>Email<input name="email" type="email" autocomplete="email" required /></label>
@@ -23,19 +25,47 @@ const action = site.formEndpoint || `mailto:${site.email}`;
 <script>
   const form = document.getElementById('contact-form') as HTMLFormElement;
   const msg = document.getElementById('form-msg')!;
+  const stringValue = (value: unknown) => ({ stringValue: String(value ?? '') });
+
   form.addEventListener('submit', async (e) => {
-    const { endpoint, email } = form.dataset;
-    if (!endpoint) return; // no service set up: falls back to the email app
+    const { endpoint, fsProject, fsKey, email } = form.dataset;
+    const useFirestore = Boolean(fsProject && fsKey);
+    if (!useFirestore && !endpoint) return; // no service set up: falls back to the email app
     e.preventDefault();
-    const fd = new FormData(form);
-    msg.className = 'form-msg'; msg.textContent = 'Sending...';
-    if (fd.get('_gotcha')) { msg.textContent = 'Thanks. I will reply within two days.'; return; } // spam trap
+    const data = new FormData(form);
+    msg.className = 'form-msg';
+    msg.textContent = 'Sending...';
+    if (data.get('_gotcha')) {
+      msg.textContent = 'Thanks. I will reply within two days.';
+      return;
+    }
     try {
-      const res = await fetch(endpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+      const res = useFirestore
+        ? await fetch(`https://firestore.googleapis.com/v1/projects/${fsProject}/databases/(default)/documents/messages?key=${fsKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fields: {
+                name: stringValue(data.get('name')),
+                email: stringValue(data.get('email')),
+                topic: stringValue(data.get('topic')),
+                message: stringValue(data.get('message')),
+                sentAt: stringValue(new Date().toISOString()),
+                source: stringValue('portfolio'),
+              },
+            }),
+          })
+        : await fetch(endpoint!, {
+            method: 'POST',
+            body: data,
+            headers: { Accept: 'application/json' },
+          });
       if (!res.ok) throw new Error();
-      form.reset(); msg.textContent = 'Thanks. I will reply within two days.';
+      form.reset();
+      msg.textContent = 'Thanks. I will reply within two days.';
     } catch {
-      msg.className = 'form-msg err'; msg.textContent = `Could not send. Please email me at ${email}.`;
+      msg.className = 'form-msg err';
+      msg.textContent = `Could not send. Please email me at ${email}.`;
     }
   });
 </script>
