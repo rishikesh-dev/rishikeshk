@@ -14,10 +14,10 @@ const { featured, upcoming, others } = await getProjectGroups();
 const repos = await Promise.all(featured.map((project) => getRepo(project.data.githubUrl)));
 
 const buildLog = [
-  { name: 'Journeo', status: 'live', note: '500 downloads', state: 'live', href: site.playStoreDev },
-  { name: 'Inveio', status: 'progress', note: '', state: 'progress' },
-  { name: 'Jarvis', status: 'progress', note: '', state: 'progress' },
-  { name: 'Next app', status: 'planned', note: '', state: 'planned' },
+  { name: 'Journeo', status: 'LIVE', note: 'Play Store · 500 downloads', state: 'live', href: site.playStoreDev },
+  { name: 'Inveio', status: 'BUILDING', note: '', state: 'progress' },
+  { name: 'Jarvis', status: 'BUILDING', note: '', state: 'progress' },
+  { name: 'Next app', status: 'PLANNED', note: '', state: 'planned' },
 ];
 ---
 <Base>
@@ -74,7 +74,7 @@ const buildLog = [
               <img src="/images/journeo-screenshot.png" width="176" height="360" alt="Journeo app home screen" />
               <p class="mockup-caption"><a href={site.playStoreDev} rel="noopener">Journeo, live on Play Store</a></p>
             </div>
-            <p class="pull-quote">"Solo. You talk to the person who writes the code."</p>
+            <p class="pull-quote">Solo. You talk to the person who writes the code.</p>
           </div>
         </div>
         <div class="about-right">
@@ -86,12 +86,9 @@ const buildLog = [
             <li class="receipt-divider dashed"></li>
             {buildLog.map((entry, i) => (
               <li class={`receipt-row receipt-build ${entry.state}`}>
-                <span class="receipt-label"><strong>{i + 1} {entry.name}</strong></span>
-                {entry.href ? (
-                  <a href={entry.href} rel="noopener" class={`receipt-value ${entry.state === 'live' ? 'accent' : ''}`}>{entry.status}</a>
-                ) : (
-                  <span class={`receipt-value ${entry.state === 'live' ? 'accent' : ''}`}>{entry.status}</span>
-                )}
+                <span class="receipt-name" style={{ fontWeight: 600 }}>{i + 1} {entry.name}</span>
+                <span class="receipt-leader"></span>
+                <span class={`receipt-status ${entry.state === 'live' ? 'live' : ''}`}>{entry.status}</span>
                 {entry.note && (
                   <p class="receipt-note">{entry.note}</p>
                 )}
@@ -102,12 +99,12 @@ const buildLog = [
             <li class="receipt-row"><span class="receipt-label">Hand-offs</span><span class="receipt-leader"></span><span class="receipt-value">0</span></li>
             <li class="receipt-row"><span class="receipt-label">Client work</span><span class="receipt-leader"></span><span class="receipt-value">When it fits</span></li>
             <li class="receipt-divider solid"></li>
-            <li class="receipt-total"><span class="receipt-label">TOTAL MIDDLEMEN</span><span class="receipt-leader"></span><span class="receipt-value accent">0</span></li>
+            <li class="receipt-total"><span class="receipt-label">TOTAL MIDDLEMEN</span><span class="receipt-leader"></span><span class="receipt-total-value">0</span></li>
             <li class="receipt-barcode"></li>
             <li class="receipt-footer">FAST. SIMPLE. MADE TO LAST.</li>
           </ul>
           <div class="receipt-torn-edge"></div>
-          <div class="stamp">SOLO</div>
+          <div class="stamp" aria-hidden="true">SOLO</div>
         </div>
       </div>
     </div>
