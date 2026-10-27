@@ -446,12 +446,11 @@ section.s {
 
 /* Left column */
 .about-label {
-    font: 800 18px var(--head);
-    letter-spacing: 2px;
+    font: 700 15px var(--head);
+    letter-spacing: .02em;
     border-bottom: 2px solid var(--color-ink);
-    padding-bottom: 4px;
-    margin: 0 0 28px 0;
-    text-transform: uppercase
+    padding-bottom: 6px;
+    margin: 0 0 28px 0
 }
 
 .about-h1 {
@@ -498,7 +497,7 @@ section.s {
 .receipt {
     list-style: none;
     padding: 32px 28px 20px;
-    margin: 0;
+    margin: 24px 0 0 0;
     background: var(--color-paper);
     box-shadow: 6px 8px 0 var(--color-ink);
     transform: rotate(2deg);
