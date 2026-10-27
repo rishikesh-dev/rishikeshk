@@ -413,32 +413,179 @@ section.s {
     margin: 0
 }
 
+/* About section */
 .about {
+    background: #E8DABC;
+    color: #1D1B17;
+}
+
+.about-grid {
     display: grid;
     grid-template-columns: 1.4fr .6fr;
-    gap: 56px
+    gap: 56px;
+    align-items: start;
 }
 
-.about q {
-    display: block;
-    quotes: none;
-    font: 900 clamp(34px, 5vw, 68px)/1.04 var(--head);
-    letter-spacing: -.01em
-}
-
-.about dl {
-    font-size: 17px
-}
-
-.about dt {
+.about label,
+.about .label {
     font: 700 15px var(--head);
-    margin-top: 18px;
-    border-top: 1px solid var(--ink);
-    padding-top: 10px
+    letter-spacing: .02em
 }
 
-.about dt:first-child {
-    margin-top: 0
+.about-headline {
+    font: 900 clamp(34px, 5vw, 56px)/1.1 var(--head);
+    letter-spacing: -.01em;
+    margin: 0 0 24px 0;
+    text-wrap: balance
+}
+
+.phone-mockup {
+    margin-top: 24px
+}
+
+.phone-mockup img {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    transform: rotate(-4deg);
+    transform-origin: center;
+    box-shadow: 8px 8px 0 rgba(29, 27, 23, 0.15)
+}
+
+.mockup-caption {
+    margin-top: 8px;
+    font-size: 14px
+}
+
+.mockup-caption a {
+    color: #1D1B17;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px
+}
+
+.pull-quote {
+    font: 900 clamp(34px, 5vw, 56px)/1.1 var(--head);
+    letter-spacing: -.01em;
+    margin: 0 0 16px 0;
+    quotes: none
+}
+
+.based-in {
+    font: 700 15px var(--head);
+    margin: 0 0 24px 0;
+    letter-spacing: .02em;
+    text-transform: uppercase
+}
+
+.build-log-title {
+    font: 700 18px var(--head);
+    margin: 0 0 16px 0;
+    letter-spacing: .02em;
+    text-transform: uppercase
+}
+
+.build-log {
+    list-style: none;
+    padding: 0;
+    margin: 0
+}
+
+.build-log-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #1D1B17
+}
+
+.build-log-item:last-child {
+    border-bottom: none
+}
+
+.state-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0
+}
+
+.state-live {
+    background: var(--red)
+}
+
+.state-progress {
+    background: #F3A59C
+}
+
+.state-planned {
+    background: #999
+}
+
+.entry-name {
+    font: 600 15px var(--body)
+}
+
+.entry-name a {
+    color: inherit;
+    text-decoration: none
+}
+
+.entry-state {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-left: auto
+}
+
+.entry-note {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-left: 8px
+}
+
+/* About section mobile (under 768px) */
+@media (max-width: 768px) {
+    .about-grid {
+        grid-template-columns: 1fr;
+        gap: 32px
+    }
+
+    .phone-mockup img {
+        max-width: 260px
+    }
+
+    .about-left,
+    .about-right {
+        display: contents
+    }
+
+    .about .label {
+        order: 0
+    }
+
+    .about-headline {
+        order: 1
+    }
+
+    .phone-mockup {
+        order: 2
+    }
+
+    .pull-quote {
+        order: 3
+    }
+
+    .based-in {
+        order: 4
+    }
+
+    .build-log-title {
+        order: 5
+    }
+
+    .build-log {
+        order: 6
+    }
 }
 
 .contact h2 {
@@ -639,8 +786,7 @@ footer {
 
     .hero,
     .work,
-    .work.flip,
-    .about {
+    .work.flip {
         grid-template-columns: 1fr
     }
 

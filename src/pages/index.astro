@@ -12,24 +12,30 @@ import { site } from '../data/site';
 const { featured, upcoming, others } = await getProjectGroups();
 // Only fetch GitHub metadata for projects that actually render as feature rows.
 const repos = await Promise.all(featured.map((project) => getRepo(project.data.githubUrl)));
-const bio = await fsDoc('portfolio/bio');
+
+const buildLog = [
+  { name: 'Journeo', status: 'live', note: '500 downloads', state: 'live', href: site.playStoreDev },
+  { name: 'Inveio', status: 'progress', note: '', state: 'progress' },
+  { name: 'Jarvis', status: 'progress', note: '', state: 'progress' },
+  { name: 'Next app', status: 'planned', note: '', state: 'planned' },
+];
 ---
 <Base>
   <header class="hero" id="home">
     <div>
-      <p class="label"><b>01</b>Flutter Developer, India</p>
+      <p class="label js-reveal"><b>01</b>Flutter Developer, India</p>
       <h1><span><i>Apps</i></span><span><i>With</i></span><span><i>Purpose<em>.</em></i></span></h1>
-      <p class="intro">I design and develop thoughtful mobile apps with Flutter. From personal tools to productivity apps, I focus on clean code, solid architecture and real-world usability.</p>
-      <div class="cta-row"><a class="btn" href="#work">View Projects</a><a class="btn line" href="#contact">Contact Me</a></div>
+      <p class="intro js-reveal">I design and develop thoughtful mobile apps with Flutter. From personal tools to productivity apps, I focus on clean code, solid architecture and real-world usability.</p>
+      <div class="cta-row js-reveal"><a class="btn" href="#work">View Projects</a><a class="btn line" href="#contact">Contact Me</a></div>
     </div>
-    <img class="sketch" src="/images/sketch.jpg" width=744 height=562 alt="Pencil sketch of a developer typing on a laptop at a desk with a lamp and a plant" fetchpriority="high" />
+    <img class="sketch js-reveal" src="/images/sketch.jpg" width=744 height=562 alt="Pencil sketch of a developer typing on a laptop at a desk with a lamp and a plant" fetchpriority="high" />
   </header>
 
   <section class="s" id="work">
-    <p class="label"><b>02</b>Featured Works</p>
+    <p class="label js-inview"><b>02</b>Featured Works</p>
     {featured.length > 0
-      ? featured.map((p, i) => <ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} />)
-      : <p class="empty-note">{others.length + upcoming.length > 0 ? 'Nothing is featured right now. Browse every project below.' : 'No projects are published yet.'}</p>}
+      ? featured.map((p, i) => <div class="js-inview"><ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} /></div>)
+      : <p class="empty-note js-inview">{others.length + upcoming.length > 0 ? 'Nothing is featured right now. Browse every project below.' : 'No projects are published yet.'}</p>}
     {others.length > 0 && (
       <div class="more project-index">
         <h3>More projects</h3>
@@ -44,7 +50,7 @@ const bio = await fsDoc('portfolio/bio');
         <div class="soon">
           {upcoming.map((p) => (
             <article class="ph">
-              <span class="st">Coming soon</span>
+              <a class="st" href={`/apps/${p.id}/`}>Case study</a>
               <div>
                 <h4><a href={`/apps/${p.id}/`}>{p.data.title}</a></h4>
                 {p.data.summary && <p>{p.data.summary}</p>}
@@ -58,15 +64,35 @@ const bio = await fsDoc('portfolio/bio');
   </section>
 
   <section class="s about" id="about">
-    <div><p class="label"><b>03</b>About</p><q>I build apps the way I want to use them: fast, simple and made to last.</q></div>
-    <dl>
-      <dt>Based in</dt><dd>{site.location}</dd>
-      <dt>How I work</dt><dd>Solo. You talk to the person who writes the code.</dd>
-      <dt>What I do</dt><dd>My own apps, plus client work when it fits.</dd>
-      {bio?.liveApps != null && <><dt>Live apps</dt><dd>{bio.liveApps}</dd></>}
-      {bio?.projects != null && <><dt>Projects</dt><dd>{bio.projects}</dd></>}
-      {bio?.downloads != null && <><dt>Downloads</dt><dd>{bio.downloads}</dd></>}
-    </dl>
+    <div class="about-grid">
+      <div class="about-left">
+        <p class="label"><b>03</b>About</p>
+        <h2 class="about-headline">I build apps the way I want to use them: fast, simple and made to last.</h2>
+        <div class="phone-mockup">
+          <img src="/images/journeo-screenshot.png" width="375" height="812" alt="Journeo app screenshot on a phone mockup" />
+          <p class="mockup-caption"><a href={site.playStoreDev} rel="noopener">Journeo, live on Play Store</a></p>
+        </div>
+      </div>
+      <div class="about-right">
+        <p class="pull-quote">"Solo. You talk to the person who writes the code."</p>
+        <p class="based-in">Based in Kerala, India</p>
+        <h3 class="build-log-title">Build log</h3>
+        <ul class="build-log">
+          {buildLog.map((entry) => (
+            <li class="build-log-item">
+              <span class={`state-dot state-${entry.state}`}></span>
+              {entry.href ? (
+                <a href={entry.href} rel="noopener">{entry.name}</a>
+              ) : (
+                <span>{entry.name}</span>
+              )}
+              <span class="entry-state">{entry.state}</span>
+              {entry.note && <span class="entry-note">{entry.note}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   </section>
 
   <section class="s" id="skills"><Pubspec /></section>
