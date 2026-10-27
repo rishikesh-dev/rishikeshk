@@ -263,7 +263,6 @@ h1 em {
 }
 
 .btn {
-    position: relative;
     display: inline-block;
     padding: 15px 30px;
     font: 400 19px var(--body);
@@ -272,47 +271,14 @@ h1 em {
     background: var(--ink);
     color: var(--bg);
     margin-right: 12px;
-    transition: transform 200ms ease, box-shadow 200ms ease;
-    box-shadow: 0 0 0 rgba(26, 24, 20, 0);
-    z-index: 1
-}
-
-.btn::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--red);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform var(--t-fast) var(--ease-out);
-    z-index: -1;
-    border: inherit
-}
-
-.btn.line {
-    background: none;
-    color: var(--ink)
-}
-
-.btn.line::after {
-    background: var(--ink)
+    transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, border-color 200ms ease;
+    box-shadow: 0 0 0 rgba(26, 24, 20, 0)
 }
 
 .btn:hover,
 .btn:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 4px 4px 0 rgba(26, 24, 20, 0.25);
-    color: var(--bg)
-}
-
-.btn.line:hover,
-.btn.line:focus-visible {
-    color: var(--bg)
-}
-
-.btn:hover::after,
-.btn:focus-visible::after {
-    transform: scaleX(1)
+    box-shadow: 4px 4px 0 rgba(26, 24, 20, 0.25)
 }
 
 .btn:active {
@@ -323,6 +289,17 @@ h1 em {
 .btn:disabled {
     opacity: .5;
     cursor: wait
+}
+
+.btn.line {
+    background: none;
+    color: var(--ink)
+}
+
+.btn:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff
 }
 
 .sketch {
