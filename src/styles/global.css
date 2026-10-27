@@ -28,43 +28,92 @@ html {
     }
 }
 
-/* ---- scroll reveals via animation-timeline: view() ----
-   Base state is visible (no hidden start in base CSS).
-   Where view() is supported, elements animate on scroll entry.
-   Where unsupported, everything is visible with no animation. */
-@supports (animation-timeline: view()) {
-    .js .js-reveal,
-    .js .js-inview,
-    .js .js-stagger-item,
-    .js .tag,
-    .js .pill,
-    .js .ph .st,
-    .js .shot,
-    .js .sketch {
-        animation: reveal var(--t-slow) var(--ease-out);
-        animation-timeline: view();
-        animation-range: entry 0% entry 50%;
-    }
+/* ---- scroll reveals via IntersectionObserver ----
+   Base CSS never hides anything.
+   Hidden start state only under html.js [data-reveal]:not([data-in]) */
 
-    @keyframes reveal {
-        from {
-            opacity: 0;
-            transform: translateY(12px);
-            clip-path: inset(100% 0 0 0);
-        }
-        to {
-            opacity: 1;
-            transform: none;
-            clip-path: inset(0);
-        }
-    }
+html.js [data-reveal]:not([data-in]) {
+    opacity: 0;
+    animation-delay: calc(var(--i, 0) * var(--step));
 }
 
-html:not(.js) .js-reveal,
-html:not(.js) .js-inview,
-html:not(.js) .js-stagger-item {
-    opacity: 1 !important;
-    transform: none !important;
+/* rule: section labels draw underline, section top borders, footer rule */
+html.js [data-reveal="rule"]:not([data-in]) {
+    opacity: 1; /* keep label text visible, only hide pseudo-elements */
+}
+html.js [data-reveal="rule"]:not([data-in])::before,
+html.js [data-reveal="rule"]:not([data-in])::after {
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
+/* ink: big headings wipe left to right */
+html.js [data-reveal="ink"]:not([data-in]) {
+    clip-path: inset(0 100% 0 0);
+}
+
+/* feed: images come up from a slot */
+html.js [data-reveal="feed"]:not([data-in]) {
+    clip-path: inset(100% 0 0 0);
+    transform: translateY(24px);
+}
+
+/* rise: text blocks come up */
+html.js [data-reveal="rise"]:not([data-in]) {
+    transform: translateY(16px);
+}
+
+/* stamp: tags/pills/stamps rotate in */
+html.js [data-reveal="stamp"]:not([data-in]) {
+    transform: rotate(-8deg) scale(1.6);
+}
+
+/* Keyframes */
+@keyframes rule-underline {
+    from { transform: scaleX(0); transform-origin: left; }
+    to { transform: scaleX(1); transform-origin: left; }
+}
+
+@keyframes ink-wipe-scroll {
+    from { clip-path: inset(0 100% 0 0); opacity: 0; }
+    to { clip-path: inset(0); opacity: 1; }
+}
+
+@keyframes feed-up {
+    from { clip-path: inset(100% 0 0 0); transform: translateY(24px); opacity: 0; }
+    to { clip-path: inset(0); transform: translateY(0); opacity: 1; }
+}
+
+@keyframes rise-up {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+
+@keyframes stamp-in {
+    from { transform: rotate(-8deg) scale(1.6); opacity: 0; }
+    to { transform: rotate(-2deg) scale(1); opacity: 1; }
+}
+
+/* Apply animations when data-in is set */
+html.js [data-reveal="rule"][data-in]::before,
+html.js [data-reveal="rule"][data-in]::after {
+    animation: rule-underline var(--t-slow) var(--ease-out) both;
+}
+
+html.js [data-reveal="ink"][data-in] {
+    animation: ink-wipe-scroll var(--t-slow) var(--ease-out) both;
+}
+
+html.js [data-reveal="feed"][data-in] {
+    animation: feed-up var(--t-slow) var(--ease-out) both;
+}
+
+html.js [data-reveal="rise"][data-in] {
+    animation: rise-up var(--t-med) var(--ease-out) both;
+}
+
+html.js [data-reveal="stamp"][data-in] {
+    animation: stamp-in var(--t-fast) var(--ease-out) both;
 }
 
 html:target {
@@ -1291,7 +1340,7 @@ html[data-astro-transition="back"]::view-transition-old(root) {
     }
 }
 
-/* ---- rules draw: section borders, .label underlines, footer rule ---- */
+/* ---- rules draw: section borders, .label underlines, footer rule (scroll reveal) ---- */
 section.s::before,
 .label::after,
 footer::before {
@@ -1299,8 +1348,6 @@ footer::before {
     position: absolute;
     left: 0;
     transform-origin: left;
-    transform: scaleX(0);
-    transition: transform var(--t-slow) var(--ease-out) both;
 }
 
 section.s::before {
@@ -1321,39 +1368,14 @@ footer::before {
     border-top: 3px solid var(--ink);
 }
 
-section.s:hover::before,
-.label:hover::after,
-footer:hover::before {
-    transform: scaleX(1);
-}
-
-/* ---- rubber stamp: .tag, .pill, .ph .st ----
-   Base state is visible. Hover does not change opacity/visibility. */
-.js .tag,
-.js .pill,
-.js .ph .st {
-    transform: rotate(-2deg) scale(1);
-    opacity: 1;
-    transition: transform var(--t-fast) var(--ease-out);
-}
-
+/* ---- rubber stamp: .tag, .pill, .ph .st (scroll reveal) ---- */
 .js .tag:hover,
 .js .pill:hover,
 .js .ph .st:hover {
     transform: rotate(-2deg) scale(1.05);
 }
 
-/* ---- paper feed: hero sketch and .shot images ----
-   Base state is visible. Scroll reveal via animation-timeline: view(). */
-.js .shot,
-.js .sketch {
-    clip-path: inset(0);
-    transform: translateY(0);
-}
-
-.js .sketch {
-    animation-delay: 300ms;
-}
+/* ---- paper feed: hero sketch and .shot images (scroll reveal) ---- */
 
 /* ---- column wipe page transition (ClientRouter) ---- */
 @media (min-width: 701px) {
@@ -1468,10 +1490,9 @@ footer:hover::before {
     }
 }
 
-/* ---- failsafe: if hero/reveal elements still hidden after 1500ms ---- */
+/* ---- failsafe: if reveal elements still hidden after 1500ms ---- */
 html.no-motion-wait h1 span i,
-html.no-motion-wait [data-reveal],
-html.no-motion-wait [data-inview] {
+html.no-motion-wait [data-reveal] {
     opacity: 1 !important;
     clip-path: inset(0) !important;
     transform: none !important;

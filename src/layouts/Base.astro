@@ -3,6 +3,7 @@ import "@fontsource-variable/playfair-display";
 import "@fontsource-variable/source-serif-4";
 import "../styles/global.css";
 import { site } from "../data/site";
+import { ClientRouter } from "astro:transitions";
 
 const {
   title = `${site.name} – ${site.role}`,
@@ -32,6 +33,9 @@ const year = new Date().getFullYear();
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -39,8 +43,9 @@ const year = new Date().getFullYear();
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#E9DBBE" />
     <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+    <ClientRouter />
   </head>
-  <body>
+  <body id="top">
     <div class="wrap">
       <div class="bar">
         <div class="top"></div>
@@ -66,7 +71,10 @@ const year = new Date().getFullYear();
       <slot />
       <footer>
         <span>© {year} {site.name}</span>
-        <span class="flinks">
+        <span
+          class="flinks"
+          style="display: flex; gap: 1rem; align-items: center;"
+        >
           {
             site.github && (
               <a href={site.github} rel="me">
@@ -92,19 +100,40 @@ const year = new Date().getFullYear();
         </span>
       </footer>
     </div>
+
+    <a class="to-top" href="#top" aria-label="Back to the front page">
+      <span class="to-top__arrow" aria-hidden="true">↑</span>
+      <span class="to-top__label">Back to Top</span>
+    </a>
+
     <script>
-      const nav = document.getElementById("nav");
-      const btn = document.getElementById("menu");
-      btn?.addEventListener("click", () => {
-        const open = nav!.classList.toggle("open");
-        btn.setAttribute("aria-expanded", String(open));
-      });
-      document.querySelectorAll("#links a").forEach((a) =>
-        a.addEventListener("click", () => {
-          nav!.classList.remove("open");
-          btn?.setAttribute("aria-expanded", "false");
-        }),
-      );
+      window.initNav = function initNav() {
+        const nav = document.getElementById("nav");
+        const btn = document.getElementById("menu");
+        if (!nav || !btn) return;
+        const freshBtn = btn.cloneNode(true);
+        btn.replaceWith(freshBtn);
+        freshBtn.addEventListener("click", () => {
+          const open = nav.classList.toggle("open");
+          freshBtn.setAttribute("aria-expanded", String(open));
+        });
+        document.querySelectorAll("#links a").forEach((a) => {
+          const clone = a.cloneNode(true);
+          a.replaceWith(clone);
+          clone.addEventListener("click", () => {
+            nav.classList.remove("open");
+            freshBtn.setAttribute("aria-expanded", "false");
+          });
+        });
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", window.initNav, { once: true });
+      } else {
+        window.initNav();
+      }
+      document.addEventListener("astro:page-load", window.initNav);
     </script>
+    <script src="../scripts/nav-transitions.js"></script>
+    <script src="../scripts/reveal.ts"></script>
   </body>
 </html>
