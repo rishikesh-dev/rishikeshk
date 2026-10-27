@@ -64,33 +64,51 @@ const buildLog = [
   </section>
 
   <section class="s about" id="about">
-    <div class="about-grid">
-      <div class="about-left">
-        <p class="label"><b>03</b>About</p>
-        <h2 class="about-headline">I build apps the way I want to use them: fast, simple and made to last.</h2>
-        <div class="phone-mockup">
-          <img src="/images/journeo-screenshot.png" width="375" height="812" alt="Journeo app screenshot on a phone mockup" />
-          <p class="mockup-caption"><a href={site.playStoreDev} rel="noopener">Journeo, live on Play Store</a></p>
+    <div class="about-inner">
+      <div class="about-grid">
+        <div class="about-left">
+          <p class="about-label"><b>03</b> | About</p>
+          <h1 class="about-h1">I build apps the way I want to use them: fast, simple and made to last.</h1>
+          <div class="about-row">
+            <div class="phone-mockup">
+              <img src="/images/journeo-screenshot.png" width="176" height="360" alt="Journeo app home screen" />
+              <p class="mockup-caption"><a href={site.playStoreDev} rel="noopener">Journeo, live on Play Store</a></p>
+            </div>
+            <p class="pull-quote">"Solo. You talk to the person who writes the code."</p>
+          </div>
         </div>
-      </div>
-      <div class="about-right">
-        <p class="pull-quote">"Solo. You talk to the person who writes the code."</p>
-        <p class="based-in">Based in Kerala, India</p>
-        <h3 class="build-log-title">Build log</h3>
-        <ul class="build-log">
-          {buildLog.map((entry) => (
-            <li class="build-log-item">
-              <span class={`state-dot state-${entry.state}`}></span>
-              {entry.href ? (
-                <a href={entry.href} rel="noopener">{entry.name}</a>
-              ) : (
-                <span>{entry.name}</span>
-              )}
-              <span class="entry-state">{entry.state}</span>
-              {entry.note && <span class="entry-note">{entry.note}</span>}
-            </li>
-          ))}
-        </ul>
+        <div class="about-right">
+          <ul class="receipt">
+            <li class="receipt-title">APP RECEIPT</li>
+            <li class="receipt-sub">Order 03 · Kerala, India</li>
+            <li class="receipt-divider dashed"></li>
+            <li class="receipt-row"><span class="receipt-label">SERVED BY</span><span class="receipt-leader"></span><span class="receipt-value">Richi, the dev</span></li>
+            <li class="receipt-divider dashed"></li>
+            {buildLog.map((entry, i) => (
+              <li class={`receipt-row receipt-build ${entry.state}`}>
+                <span class="receipt-label"><strong>{i + 1} {entry.name}</strong></span>
+                {entry.href ? (
+                  <a href={entry.href} rel="noopener" class={`receipt-value ${entry.state === 'live' ? 'accent' : ''}`}>{entry.status}</a>
+                ) : (
+                  <span class={`receipt-value ${entry.state === 'live' ? 'accent' : ''}`}>{entry.status}</span>
+                )}
+                {entry.note && (
+                  <p class="receipt-note">{entry.note}</p>
+                )}
+              </li>
+            ))}
+            {buildLog.length > 0 && <li class="receipt-divider dashed"></li>}
+            <li class="receipt-row"><span class="receipt-label">Account managers</span><span class="receipt-leader"></span><span class="receipt-value">0</span></li>
+            <li class="receipt-row"><span class="receipt-label">Hand-offs</span><span class="receipt-leader"></span><span class="receipt-value">0</span></li>
+            <li class="receipt-row"><span class="receipt-label">Client work</span><span class="receipt-leader"></span><span class="receipt-value">When it fits</span></li>
+            <li class="receipt-divider solid"></li>
+            <li class="receipt-total"><span class="receipt-label">TOTAL MIDDLEMEN</span><span class="receipt-leader"></span><span class="receipt-value accent">0</span></li>
+            <li class="receipt-barcode"></li>
+            <li class="receipt-footer">FAST. SIMPLE. MADE TO LAST.</li>
+          </ul>
+          <div class="receipt-torn-edge"></div>
+          <div class="stamp">SOLO</div>
+        </div>
       </div>
     </div>
   </section>

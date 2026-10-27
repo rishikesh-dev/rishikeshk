@@ -19,7 +19,8 @@
 
 html {
     scroll-behavior: smooth;
-    scroll-padding-top: 60px
+    scroll-padding-top: 60px;
+    overflow-x: hidden
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -413,178 +414,293 @@ section.s {
     margin: 0
 }
 
-/* About section */
+/* About section — Receipt concept */
+:root {
+    --color-bg: #E8DABC;
+    --color-ink: #1D1B17;
+    --color-paper: #F7F2E6;
+    --color-muted: #5A554A;
+    --color-accent: #B93A22;
+    --color-dots: #8a8372;
+}
+
 .about {
-    background: #E8DABC;
-    color: #1D1B17;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    min-height: 780px;
+    overflow: hidden
+}
+
+.about-inner {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 72px 40px
 }
 
 .about-grid {
     display: grid;
-    grid-template-columns: 1.4fr .6fr;
+    grid-template-columns: 7fr 5fr;
     gap: 56px;
-    align-items: start;
+    align-items: start
 }
 
-.about label,
-.about .label {
-    font: 700 15px var(--head);
-    letter-spacing: .02em
-}
-
-.about-headline {
-    font: 900 clamp(34px, 5vw, 56px)/1.1 var(--head);
-    letter-spacing: -.01em;
-    margin: 0 0 24px 0;
-    text-wrap: balance
-}
-
-.phone-mockup {
-    margin-top: 24px
-}
-
-.phone-mockup img {
-    display: block;
-    width: 100%;
-    max-width: 300px;
-    transform: rotate(-4deg);
-    transform-origin: center;
-    box-shadow: 8px 8px 0 rgba(29, 27, 23, 0.15)
-}
-
-.mockup-caption {
-    margin-top: 8px;
-    font-size: 14px
-}
-
-.mockup-caption a {
-    color: #1D1B17;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px
-}
-
-.pull-quote {
-    font: 900 clamp(34px, 5vw, 56px)/1.1 var(--head);
-    letter-spacing: -.01em;
-    margin: 0 0 16px 0;
-    quotes: none
-}
-
-.based-in {
-    font: 700 15px var(--head);
-    margin: 0 0 24px 0;
-    letter-spacing: .02em;
+/* Left column */
+.about-label {
+    font: 800 18px var(--head);
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--color-ink);
+    padding-bottom: 4px;
+    margin: 0 0 28px 0;
     text-transform: uppercase
 }
 
-.build-log-title {
-    font: 700 18px var(--head);
-    margin: 0 0 16px 0;
-    letter-spacing: .02em;
-    text-transform: uppercase
-}
-
-.build-log {
-    list-style: none;
-    padding: 0;
+.about-h1 {
+    font: 900 76px/0.98 var(--head);
+    letter-spacing: -1px;
     margin: 0
 }
 
-.build-log-item {
-    display: flex;
+.about-row {
+    margin-top: 48px;
+    gap: 40px;
     align-items: center;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid #1D1B17
+    display: flex;
+    flex-wrap: wrap
 }
 
-.build-log-item:last-child {
-    border-bottom: none
+.phone-mockup {
+    border: 7px solid var(--color-ink);
+    border-radius: 34px;
+    transform: rotate(-4deg);
+    transform-origin: center;
+    box-shadow: 8px 10px 0 var(--color-ink);
+    width: 176px;
+    height: 360px;
+    overflow: hidden;
+    background: var(--color-paper)
 }
 
-.state-dot {
-    width: 8px;
-    height: 8px;
+.phone-mockup img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block
+}
+
+.mockup-caption {
+    margin-top: 12px;
+    font: 400 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace
+}
+
+.mockup-caption a {
+    color: var(--color-ink);
+    text-decoration: none;
+    transition: color 150ms ease
+}
+
+.mockup-caption a:hover {
+    color: var(--color-accent)
+}
+
+.mockup-caption a:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px
+}
+
+.pull-quote {
+    font: 800 34px/1.15 var(--head);
+    margin: 0;
+    quotes: none;
+    max-width: 420px
+}
+
+/* Right column — receipt */
+.about-right {
+    display: flex;
+    justify-content: center
+}
+
+.receipt {
+    list-style: none;
+    padding: 32px 28px 20px;
+    margin: 0;
+    background: var(--color-paper);
+    box-shadow: 6px 8px 0 var(--color-ink);
+    transform: rotate(2deg);
+    transform-origin: top center;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+    font: 400 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--color-ink)
+}
+
+.receipt-title {
+    font: 600 16px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 2px;
+    text-align: center;
+    margin: 0 0 8px 0;
+    text-transform: uppercase
+}
+
+.receipt-sub {
+    font-size: 12px;
+    color: var(--color-muted);
+    text-align: center;
+    margin: 0 0 14px 0
+}
+
+.receipt-divider {
+    border: none;
+    height: 2px;
+    margin: 14px 0
+}
+
+.receipt-divider.dashed {
+    border-bottom: 2px dashed var(--color-ink)
+}
+
+.receipt-divider.solid {
+    border-bottom: 2px solid var(--color-ink)
+}
+
+.receipt-row {
+    display: flex;
+    align-items: baseline;
+    margin: 0 0 6px 0
+}
+
+.receipt-label {
+    font-weight: 600;
+    margin-right: 6px;
+    white-space: nowrap
+}
+
+.receipt-leader {
+    flex: 1;
+    min-width: 16px;
+    border-bottom: 2px dotted var(--color-dots);
+    margin: 0 6px
+}
+
+.receipt-value {
+    white-space: nowrap
+}
+
+.receipt-value.accent {
+    color: var(--color-accent);
+    font-weight: 600
+}
+
+.receipt-note {
+    font-size: 12px;
+    color: var(--color-muted);
+    margin: 2px 0 0 18px
+}
+
+.receipt-total {
+    font-weight: 600;
+    font-size: 17px;
+    margin-top: 10px
+}
+
+.receipt-barcode {
+    height: 46px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--color-ink),
+        var(--color-ink) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    margin: 14px 0 8px 0
+}
+
+.receipt-footer {
+    font-size: 12px;
+    color: var(--color-muted);
+    letter-spacing: 1px;
+    text-align: center;
+    margin: 0
+}
+
+.receipt-torn-edge {
+    height: 12px;
+    width: 100%;
+    display: block;
+    background: var(--color-paper);
+    background-image: linear-gradient(45deg, var(--color-ink) 16px, transparent 0), linear-gradient(-45deg, var(--color-ink) 16px, transparent 0);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+    margin-top: 8px
+}
+
+.stamp {
+    width: 92px;
+    height: 92px;
+    border: 3px solid var(--color-accent);
     border-radius: 50%;
-    flex-shrink: 0
+    color: var(--color-accent);
+    font: 600 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 92px;
+    text-transform: uppercase;
+    transform: rotate(-14deg);
+    position: absolute;
+    right: -18px;
+    top: 92px;
+    background: color-mix(in srgb, var(--color-paper) 85%, transparent);
+    pointer-events: none
 }
 
-.state-live {
-    background: var(--red)
-}
+/* About section mobile (<=860px) */
+@media (max-width: 860px) {
+    .about-right {
+        overflow: hidden
+    }
+    .about-inner {
+        max-width: 100%;
+        padding: 40px 24px
+    }
 
-.state-progress {
-    background: #F3A59C
-}
-
-.state-planned {
-    background: #999
-}
-
-.entry-name {
-    font: 600 15px var(--body)
-}
-
-.entry-name a {
-    color: inherit;
-    text-decoration: none
-}
-
-.entry-state {
-    font-size: 13px;
-    opacity: 0.7;
-    margin-left: auto
-}
-
-.entry-note {
-    font-size: 13px;
-    opacity: 0.7;
-    margin-left: 8px
-}
-
-/* About section mobile (under 768px) */
-@media (max-width: 768px) {
     .about-grid {
         grid-template-columns: 1fr;
-        gap: 32px
+        gap: 40px
     }
 
-    .phone-mockup img {
-        max-width: 260px
+    .about-h1 {
+        font-size: 48px
     }
 
-    .about-left,
-    .about-right {
-        display: contents
-    }
-
-    .about .label {
-        order: 0
-    }
-
-    .about-headline {
-        order: 1
+    .about-row {
+        margin-top: 48px;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: flex-start
     }
 
     .phone-mockup {
-        order: 2
+        width: 140px;
+        height: 288px
+    }
+
+    .receipt {
+        max-width: 100%
+    }
+
+    .stamp {
+        right: -8px
+    }
+}
+
+@media (max-width: 480px) {
+    .about-row {
+        flex-direction: column
     }
 
     .pull-quote {
-        order: 3
-    }
-
-    .based-in {
-        order: 4
-    }
-
-    .build-log-title {
-        order: 5
-    }
-
-    .build-log {
-        order: 6
+        max-width: none
     }
 }
 
