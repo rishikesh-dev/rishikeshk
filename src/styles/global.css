@@ -461,39 +461,20 @@ section.s {
     margin: 0
 }
 
-.about-row {
-    margin-top: 48px;
-    gap: 40px;
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap
-}
-
-.phone-mockup {
-    border: 7px solid var(--color-ink);
-    border-radius: 34px;
-    transform: rotate(-4deg);
-    transform-origin: center;
-    box-shadow: 8px 10px 0 var(--color-ink);
-    width: 176px;
-    height: 360px;
-    overflow: hidden;
-    background: var(--color-paper)
-}
-
-.phone-mockup img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block
+.pull-quote {
+    font: 800 44px/1.12 var(--head);
+    margin-top: 56px;
+    max-width: 560px;
+    quotes: none
 }
 
 .mockup-caption {
-    margin-top: 12px;
-    font: 400 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace
+    font: 400 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace
 }
 
 .mockup-caption a {
+    display: inline-block;
+    margin-top: 20px;
     color: var(--color-ink);
     text-decoration: none;
     transition: color 150ms ease
@@ -506,13 +487,6 @@ section.s {
 .mockup-caption a:focus-visible {
     outline: 2px solid var(--color-ink);
     outline-offset: 3px
-}
-
-.pull-quote {
-    font: 800 34px/1.15 var(--head);
-    margin: 0;
-    quotes: none;
-    max-width: 420px
 }
 
 /* Right column — receipt */
@@ -694,16 +668,9 @@ section.s {
         font-size: 48px
     }
 
-    .about-row {
-        margin-top: 48px;
-        gap: 24px;
-        flex-wrap: wrap;
-        align-items: flex-start
-    }
-
-    .phone-mockup {
-        width: 140px;
-        height: 288px
+    .pull-quote {
+        font-size: 30px;
+        margin-top: 32px
     }
 
     .receipt {
