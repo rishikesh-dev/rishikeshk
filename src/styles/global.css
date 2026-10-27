@@ -588,16 +588,6 @@ section.s {
     white-space: nowrap
 }
 
-.receipt-total-value {
-    color: var(--color-ink)
-}
-
-.receipt-total {
-    font-weight: 600;
-    font-size: 17px;
-    margin-top: 10px
-}
-
 .receipt-barcode {
     height: 46px;
     background: repeating-linear-gradient(
