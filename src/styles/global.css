@@ -4,8 +4,8 @@
     --red: #B5322A;
     --head: "Playfair Display Variable", "Bodoni 72", Georgia, serif;
     --body: "Source Serif 4 Variable", Georgia, serif;
-    --ease-out: cubic-bezier(.2,.8,.2,1);
-    --ease-io: cubic-bezier(.65,0,.35,1);
+    --ease-out: cubic-bezier(.2, .8, .2, 1);
+    --ease-io: cubic-bezier(.65, 0, .35, 1);
     --t-fast: 200ms;
     --t-med: 450ms;
     --t-slow: 800ms;
@@ -28,18 +28,43 @@ html {
     }
 }
 
+/* ---- scroll reveals via animation-timeline: view() ----
+   Base state is visible (no hidden start in base CSS).
+   Where view() is supported, elements animate on scroll entry.
+   Where unsupported, everything is visible with no animation. */
+@supports (animation-timeline: view()) {
+    .js .js-reveal,
+    .js .js-inview,
+    .js .js-stagger-item,
+    .js .tag,
+    .js .pill,
+    .js .ph .st,
+    .js .shot,
+    .js .sketch {
+        animation: reveal var(--t-slow) var(--ease-out);
+        animation-timeline: view();
+        animation-range: entry 0% entry 50%;
+    }
+
+    @keyframes reveal {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+            clip-path: inset(100% 0 0 0);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+            clip-path: inset(0);
+        }
+    }
+}
+
 html:not(.js) .js-reveal,
 html:not(.js) .js-inview,
 html:not(.js) .js-stagger-item {
     opacity: 1 !important;
     transform: none !important;
-}
-
-.js .js-reveal,
-.js .js-inview,
-.js .js-stagger-item {
-    opacity: 0;
-    transform: translateY(12px);
 }
 
 html:target {
@@ -189,6 +214,7 @@ h1 em {
 }
 
 .btn {
+    position: relative;
     display: inline-block;
     padding: 15px 30px;
     font: 400 19px var(--body);
@@ -197,14 +223,47 @@ h1 em {
     background: var(--ink);
     color: var(--bg);
     margin-right: 12px;
-    transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, border-color 200ms ease;
-    box-shadow: 0 0 0 rgba(26, 24, 20, 0)
+    transition: transform 200ms ease, box-shadow 200ms ease;
+    box-shadow: 0 0 0 rgba(26, 24, 20, 0);
+    z-index: 1
+}
+
+.btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--red);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--t-fast) var(--ease-out);
+    z-index: -1;
+    border: inherit
+}
+
+.btn.line {
+    background: none;
+    color: var(--ink)
+}
+
+.btn.line::after {
+    background: var(--ink)
 }
 
 .btn:hover,
 .btn:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 4px 4px 0 rgba(26, 24, 20, 0.25)
+    box-shadow: 4px 4px 0 rgba(26, 24, 20, 0.25);
+    color: var(--bg)
+}
+
+.btn.line:hover,
+.btn.line:focus-visible {
+    color: var(--bg)
+}
+
+.btn:hover::after,
+.btn:focus-visible::after {
+    transform: scaleX(1)
 }
 
 .btn:active {
@@ -215,17 +274,6 @@ h1 em {
 .btn:disabled {
     opacity: .5;
     cursor: wait
-}
-
-.btn.line {
-    background: none;
-    color: var(--ink)
-}
-
-.btn:hover {
-    background: var(--red);
-    border-color: var(--red);
-    color: #fff
 }
 
 .sketch {
@@ -307,7 +355,7 @@ section.s {
 
 .work h2 {
     font: 900 clamp(56px, 8vw, 112px)/.95 var(--head);
-    margin: 14px 0 4px;
+    margin: 14px 0 10px 0;
     letter-spacing: -.01em
 }
 
@@ -1150,11 +1198,11 @@ footer {
     }
 }
 
-@view-transition-old(root) {
+::view-transition-old(root) {
     animation: none;
 }
 
-@view-transition-new(root) {
+::view-transition-new(root) {
     animation: column-wipe 600ms var(--ease-io) both;
     clip-path: inset(0 100% 0 0);
 }
@@ -1174,47 +1222,35 @@ html[data-astro-transition="back"]::view-transition-old(root) {
 }
 
 @keyframes column-wipe {
-    to { clip-path: inset(0); }
+    to {
+        clip-path: inset(0);
+    }
 }
 
 @keyframes column-wipe-reverse {
-    to { clip-path: inset(0 0 0 100%); }
+    to {
+        clip-path: inset(0 0 0 100%);
+    }
 }
 
 
 @keyframes ink-wipe {
-    to { clip-path: inset(0); }
-}
-
-@keyframes rubber-stamp {
-    to { transform: rotate(-2deg) scale(1); opacity: 1; }
-}
-
-
-@keyframes hover-fill {
-    to { transform: translate(-4px, -4px); }
+    to {
+        clip-path: inset(0);
+    }
 }
 
 @keyframes hover-underline-grow {
-    to { transform: scaleX(1); }
-}
-
-:root {
-    --bg: #E9DBBE;
-    --ink: #1A1814;
-    --red: #B5322A;
-    --head: "Playfair Display Variable", "Bodoni 72", Georgia, serif;
-    --body: "Source Serif 4 Variable", Georgia, serif;
-    --ease-out: cubic-bezier(.2,.8,.2,1);
-    --ease-io: cubic-bezier(.65,0,.35,1);
-    --t-fast: 200ms;
-    --t-med: 450ms;
-    --t-slow: 800ms;
-    --step: 80ms
+    to {
+        transform: scaleX(1);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+
+    *,
+    *::before,
+    *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }
@@ -1225,19 +1261,34 @@ html[data-astro-transition="back"]::view-transition-old(root) {
     clip-path: inset(0 100% 0 0);
     animation: ink-wipe var(--t-slow) var(--ease-out) both;
 }
-.js h1 span:first-child i { animation-delay: 0ms; }
-.js h1 span:nth-child(2) i { animation-delay: calc(var(--step) * 1.5); }
-.js h1 span:nth-child(3) i { animation-delay: calc(var(--step) * 2); }
+
+.js h1 span:first-child i {
+    animation-delay: 0ms;
+}
+
+.js h1 span:nth-child(2) i {
+    animation-delay: calc(var(--step) * 1.5);
+}
+
+.js h1 span:nth-child(3) i {
+    animation-delay: calc(var(--step) * 2);
+}
+
 .js h1 span:nth-child(3) i::after {
     content: ".";
     display: inline-block;
     animation: stamp var(--t-fast) var(--ease-out) both;
 }
+
 .js h1 span::after {
     content: none;
 }
+
 @keyframes stamp {
-    to { transform: scale(1) rotate(0); opacity: 1; }
+    to {
+        transform: scale(1) rotate(0);
+        opacity: 1;
+    }
 }
 
 /* ---- rules draw: section borders, .label underlines, footer rule ---- */
@@ -1251,57 +1302,57 @@ footer::before {
     transform: scaleX(0);
     transition: transform var(--t-slow) var(--ease-out) both;
 }
+
 section.s::before {
     top: 0;
     width: 100%;
     border-top: 1px solid var(--ink);
 }
+
 .label::after {
     bottom: 0;
     width: max-content;
     border-bottom: 2px solid var(--ink);
 }
+
 footer::before {
     bottom: 0;
     width: max-content;
     border-top: 3px solid var(--ink);
 }
+
 section.s:hover::before,
 .label:hover::after,
 footer:hover::before {
     transform: scaleX(1);
 }
 
-/* ---- rubber stamp: .tag, .pill, .ph .st ---- */
+/* ---- rubber stamp: .tag, .pill, .ph .st ----
+   Base state is visible. Hover does not change opacity/visibility. */
 .js .tag,
 .js .pill,
 .js .ph .st {
-    transform: rotate(-8deg) scale(1.6);
-    opacity: 0;
-    transition: transform var(--t-fast) var(--ease-out),
-                opacity var(--t-fast) var(--ease-out);
+    transform: rotate(-2deg) scale(1);
+    opacity: 1;
+    transition: transform var(--t-fast) var(--ease-out);
 }
+
 .js .tag:hover,
 .js .pill:hover,
 .js .ph .st:hover {
-    transform: rotate(-2deg) scale(1);
-    opacity: 1;
+    transform: rotate(-2deg) scale(1.05);
 }
 
-/* ---- paper feed: hero sketch and .shot images ---- */
+/* ---- paper feed: hero sketch and .shot images ----
+   Base state is visible. Scroll reveal via animation-timeline: view(). */
 .js .shot,
 .js .sketch {
-    clip-path: inset(100% 0 0 0);
-    transform: translateY(24px);
-    animation: paper-feed var(--t-slow) var(--ease-out) both;
-    animation-fill-mode: forwards;
-}
-.js .sketch {
-    animation-delay: 300ms;
+    clip-path: inset(0);
+    transform: translateY(0);
 }
 
-@keyframes paper-feed {
-    to { clip-path: inset(0); transform: translateY(0); }
+.js .sketch {
+    animation-delay: 300ms;
 }
 
 /* ---- column wipe page transition (ClientRouter) ---- */
@@ -1309,17 +1360,21 @@ footer:hover::before {
     html[data-astro-transition="back"]::view-transition-old(root) {
         animation: none;
     }
+
     html[data-astro-transition="back"]::view-transition-new(root) {
         animation: page-wipe 600ms var(--ease-io) both;
         clip-path: inset(0 100% 0 0);
     }
+
     html:not([data-astro-transition="back"])::view-transition-new(root) {
         animation: page-wipe 600ms var(--ease-io) both;
         clip-path: inset(0 100% 0 0);
     }
+
     html[data-astro-transition="back"]::view-transition-old(root) {
         clip-path: inset(0 100% 0 0);
     }
+
     html:not([data-astro-transition="back"])::view-transition-old(root) {
         animation: none;
     }
@@ -1338,12 +1393,16 @@ footer:hover::before {
     animation-timeline: scroll(root);
     animation-name: rule-draw;
     animation-delay: var(--t-fast);
+
     @supports not (animation-timeline: scroll(root)) {
         display: none;
     }
 }
+
 @keyframes rule-draw {
-    to { width: 100%; }
+    to {
+        width: 100%;
+    }
 }
 
 /* ---- hover effects ---- */
@@ -1351,6 +1410,7 @@ footer:hover::before {
 .js a {
     position: relative;
 }
+
 .js button:not(.btn):not(.cta):not(.menu)::after,
 .js a::after {
     content: "";
@@ -1362,30 +1422,47 @@ footer:hover::before {
     background: var(--red);
     transition: width var(--t-fast) var(--ease-out);
 }
+
 .js button:not(.btn):not(.cta):not(.menu):hover::after,
 .js a:hover::after {
     width: 100%;
 }
+
 .js .shot:hover {
     transform: translate(-4px, -4px);
 }
 
 /* ---- ensure no animation when reduced motion --- */
 @media (prefers-reduced-motion: reduce) {
+
     .js h1 span i,
-    .js .tag, .js .pill, .js .ph .st,
-    .js .shot, .js .sketch,
-    .js button::after, .js a::after,
-    section.s::before, .label::after, footer::before {
+    .js .tag,
+    .js .pill,
+    .js .ph .st,
+    .js .shot,
+    .js .sketch,
+    .js button::after,
+    .js a::after,
+    section.s::before,
+    .label::after,
+    footer::before {
         animation: none !important;
         transition: none !important;
     }
-    .js h1 span i { clip-path: inset(0) !important; }
-    .js .tag, .js .pill, .js .ph .st {
+
+    .js h1 span i {
+        clip-path: inset(0) !important;
+    }
+
+    .js .tag,
+    .js .pill,
+    .js .ph .st {
         transform: rotate(-2deg) scale(1) !important;
         opacity: 1 !important;
     }
-    .js .shot, .js .sketch {
+
+    .js .shot,
+    .js .sketch {
         clip-path: inset(0) !important;
         transform: translateY(0) !important;
     }
