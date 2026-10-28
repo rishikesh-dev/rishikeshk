@@ -4,7 +4,7 @@ const action = site.formEndpoint || `mailto:${site.email}`;
 const fsProject = import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ?? '';
 const fsKey = import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '';
 ---
-<form class="form" id="contact-form" method="post" action={action} enctype={site.formEndpoint ? undefined : 'text/plain'} data-endpoint={site.formEndpoint} data-fs-project={fsProject} data-fs-key={fsKey} data-email={site.email}>
+<form class="form" id="contact-form" method="post" action={action} enctype={site.formEndpoint ? undefined : 'text/plain'} data-endpoint={site.formEndpoint} data-fs-project={fsProject} data-fs-key={fsKey} data-email={site.email} data-w3f-key={import.meta.env.PUBLIC_WEB3FORMS_KEY}>
   <div class="two">
     <label>Name<input name="name" autocomplete="name" required /></label>
     <label>Email<input name="email" type="email" autocomplete="email" required /></label>
@@ -23,49 +23,97 @@ const fsKey = import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '';
   <p class="form-msg" id="form-msg" role="status"></p>
 </form>
 <script>
-  const form = document.getElementById('contact-form') as HTMLFormElement;
-  const msg = document.getElementById('form-msg')!;
-  const stringValue = (value: unknown) => ({ stringValue: String(value ?? '') });
+  function initContact() {
+    const form = document.getElementById('contact-form');
+    const msg = document.getElementById('form-msg');
+    if (!form || !msg) return;
+    const fresh = form.cloneNode(true);
+    form.replaceWith(fresh);
+    const newForm = document.getElementById('contact-form');
+    const newMsg = document.getElementById('form-msg');
+    if (!newForm || !newMsg) return;
+    const stringValue = (value) => ({ stringValue: String(value ?? '') });
+    newForm.addEventListener('submit', async (e) => {
+      const { endpoint, fsProject, fsKey, email } = newForm.dataset;
+      const useFirestore = Boolean(fsProject && fsKey);
+      if (!useFirestore && !endpoint) return;
+      e.preventDefault();
+      const data = new FormData(newForm);
+      newMsg.className = 'form-msg';
+      newMsg.textContent = 'Sending...';
+      if (data.get('_gotcha')) {
+        newMsg.textContent = 'Thanks. I will reply within two days.';
+        return;
+      }
+      try {
+        const res = useFirestore
+          ? await fetch(`https://firestore.googleapis.com/v1/projects/${fsProject}/databases/(default)/documents/messages?key=${fsKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fields: {
+                  name: stringValue(data.get('name')),
+                  email: stringValue(data.get('email')),
+                  topic: stringValue(data.get('topic')),
+                  message: stringValue(data.get('message')),
+                  sentAt: stringValue(new Date().toISOString()),
+                  source: stringValue('portfolio'),
+                },
+              }),
+            })
+          : await fetch(endpoint, {
+              method: 'POST',
+              body: data,
+              headers: { Accept: 'application/json' },
+            });
+        if (!res.ok) {
+          console.error('[CONTACT_DEBUG] fs status', res.status);
+          try {
+            const txt = await res.text();
+            console.error('[CONTACT_DEBUG] fs body', txt);
+          } catch (e) {
+            console.error('[CONTACT_DEBUG] fs body read err', e);
+          }
+          console.error('[CONTACT_DEBUG] payload keys', ['name','email','topic','message','sentAt','source']);
+          console.error('[CONTACT_DEBUG] ds len', String(newForm.dataset.fsProject||'').length, String(newForm.dataset.fsKey||'').length);
+          throw new Error();
+        }
+        newForm.reset();
 
-  form.addEventListener('submit', async (e) => {
-    const { endpoint, fsProject, fsKey, email } = form.dataset;
-    const useFirestore = Boolean(fsProject && fsKey);
-    if (!useFirestore && !endpoint) return; // no service set up: falls back to the email app
-    e.preventDefault();
-    const data = new FormData(form);
-    msg.className = 'form-msg';
-    msg.textContent = 'Sending...';
-    if (data.get('_gotcha')) {
-      msg.textContent = 'Thanks. I will reply within two days.';
-      return;
-    }
-    try {
-      const res = useFirestore
-        ? await fetch(`https://firestore.googleapis.com/v1/projects/${fsProject}/databases/(default)/documents/messages?key=${fsKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fields: {
-                name: stringValue(data.get('name')),
-                email: stringValue(data.get('email')),
-                topic: stringValue(data.get('topic')),
-                message: stringValue(data.get('message')),
-                sentAt: stringValue(new Date().toISOString()),
-                source: stringValue('portfolio'),
-              },
-            }),
-          })
-        : await fetch(endpoint!, {
-            method: 'POST',
-            body: data,
-            headers: { Accept: 'application/json' },
-          });
-      if (!res.ok) throw new Error();
-      form.reset();
-      msg.textContent = 'Thanks. I will reply within two days.';
-    } catch {
-      msg.className = 'form-msg err';
-      msg.textContent = `Could not send. Please email me at ${email}.`;
-    }
-  });
+        try {
+          const accessKey = newForm.dataset.w3fKey;
+          if (!accessKey) {
+            console.warn('Web3Forms: PUBLIC_WEB3FORMS_KEY missing');
+          } else {
+            const res2 = await fetch('https://api.web3forms.com/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                access_key: accessKey,
+                name: String(data.get('name') ?? ''),
+                email: String(data.get('email') ?? ''),
+                subject: `Portfolio: ${String(data.get('topic') ?? '')}`,
+                message: String(data.get('message') ?? ''),
+                from_name: 'Portfolio'
+              })
+            });
+            if (!res2.ok) {
+              console.warn('Web3Forms submit failed');
+            }
+          }
+        } catch (err) {
+          console.warn(err);
+        }
+
+        newMsg.className = 'form-msg';
+        newMsg.textContent = "Message sent. I'll reply soon.";
+      } catch {
+        newMsg.className = 'form-msg err';
+        newMsg.textContent = `Could not send. Please email me at ${email}.`;
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initContact, { once: true });
+  else initContact();
+  document.addEventListener('astro:page-load', initContact);
 </script>
