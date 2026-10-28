@@ -1,6 +1,6 @@
 // Pure helpers that turn the raw Firestore "projects" documents into the shape
-// the Astro content collection expects. Kept free of network calls so the
-// mapping and featured rules are easy to test.
+// the Astro content collection expects. GitHub enrichment is used as fallback.
+import { fetchRepoLanguages, fetchRepoMeta, fetchRepoReadme, parseReadmeSections, pickTag } from './github';
 
 export type ProjectStatus = 'live' | 'soon';
 

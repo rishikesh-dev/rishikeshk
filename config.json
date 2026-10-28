@@ -1,0 +1,84 @@
+{
+  "model": "maternion/spark-x2.6:4b",
+  "provider": "custom",
+  "platform": "cli",
+  "user": {
+    "name": "Richi",
+    "role": "Front‑end designer & cyber‑security enthusiast",
+    "preferences": {
+      "response_style": "concise, dry wit, formal British butler",
+      "communication_style": "spoken aloud",
+      "format": "plain text, no markdown or emoji"
+    }
+  },
+  "environment": {
+    "host": "Linux",
+    "user_home": "/home/richi",
+    "working_dir": "/home/richi/Desktop/Projects/rishikeshk",
+    "scratch_dir": "/home/richi/.hermes/cache/scratch",
+    "temp_location": "/home/richi/.hermes/cache/scratch",
+    "timezone": "Asia/Calcutta"
+  },
+  "hermes_profile": {
+    "profile": "default",
+    "skills_dir": "skills/",
+    "plugins_dir": "plugins/",
+    "cron_dir": "cron/",
+    "memories_dir": "memories/"
+  },
+  "voice": {
+    "stt_provider": "faster-whisper",
+    "tts_provider": "kittentts",
+    "stt_path": "/home/richi/.hermes/installs/769875a4774b7feb/environments/25da0664fec34ddd94d9df6d22395d1d/venv",
+    "speed": 1.0
+  },
+  "voice_settings": {
+    "output_path": "/home/richi/.hermes/audio_cache",
+    "format": "mp3"
+  },
+  "obsidian_vault": {
+    "vault_path": "/home/richi/Documents/Obsidian Vault",
+    "tool": "paru",
+    "version": "1.14.4"
+  },
+  "project": {
+    "name": "newspaper-redesign",
+    "repo": "rishikeshk",
+    "branch": "newspaper-redesign",
+    "git_url": "https://github.com/richi/rishikeshk.git"
+  },
+  "tools": {
+    "enabled": [
+      "hermes-agent-skill-authoring",
+      "hermes-agent",
+      "jarvis-ui",
+      "web_search",
+      "web_extract",
+      "terminal",
+      "execute_code",
+      "kanban_schedule",
+      "kanban_list",
+      "kanban_show",
+      "kanban_comment",
+      "kanban_complete",
+      "kanban_create",
+      "kanban_block",
+      "kanban_unblock",
+      "kanбан_attachments",
+      "kanban_request_review",
+      "kanban_request_changes",
+      "kanban_heartbeat",
+      "manage_connections",
+      "vision_analyze",
+      "text_to_speech",
+      "memory",
+      "skill_manage",
+      "skill_view",
+      "search_files",
+      "read_file",
+      "write_file",
+      "patch",
+      "execute_code"
+    ]
+  }
+}

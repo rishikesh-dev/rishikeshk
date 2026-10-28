@@ -30,7 +30,8 @@ only. Set `published: false` to hide a document without deleting it. The
 Non-featured projects with `status: "soon"` render under "More on the way";
 non-featured live projects render under "More projects". When `status` is
 missing, a document with a `playStoreUrl` is treated as live and one without it
-as coming soon. Set `status` explicitly to override that.
+as upcoming. Set `status` explicitly to override that. Upcoming projects link
+to their case study instead of showing a “Coming soon” label.
 
 New Firestore projects automatically get a `/apps/<slug>/` page at the next
 build. No frontend array needs editing and there is no local project file to
@@ -49,13 +50,13 @@ the `projects` collection publicly readable) to publish projects.
 - GitHub API → repository name, description, stars, forks, language, topics,
   last update, README sections and a sanitized README preview on each case study.
 
-README Markdown is parsed with `marked`, split into sections (overview,
-features, architecture, stack, decisions, setup and other notes), and rendered
-with an allowlist sanitizer. Relative links and images are resolved against the
-repository. Curated Firestore text wins; README sections fill gaps and add
-architecture/setup detail without repeating the story, highlights or decisions.
-Missing READMEs, private repositories, invalid URLs, rate limits and API errors
-are treated as "no GitHub enrichment" and never break a build.
+README Markdown is parsed with `marked`, rendered with an allowlist sanitizer,
+and shown in full on each case study. Relative links and images are resolved
+against the repository. Curated Firestore text wins for the summary/stack and
+the case study body, and GitHub metadata is shown alongside it. Missing
+READMEs, private repositories, invalid URLs, rate limits and API errors are
+treated as "no GitHub enrichment" and never break a build. The layout includes
+a fixed back-to-top button.
 
 The Firestore REST API uses only the public web API key. No private key or
 service account is needed. If Firestore is not configured, empty, or failing,

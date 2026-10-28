@@ -2,21 +2,56 @@
 const { id, data, flip = false, repo = null } = Astro.props;
 const href = `/apps/${id}/`;
 ---
-<article class={flip ? 'work flip' : 'work'}>
-  <a class={data.image ? 'shot' : 'shot tile'} href={href} aria-label={`Read the ${data.title} case study`}>
-    {data.image ? <img src={data.image} alt={data.imageAlt} loading="lazy" /> : <span aria-hidden="true">{data.tile}</span>}
+
+<article class={flip ? "work flip" : "work"}>
+  <a
+    class={data.image ? "shot" : "shot tile"}
+    href={href}
+    aria-label={`Read the ${data.title} case study`}
+  >
+    {
+      data.image ? (
+        <img src={data.image} alt={data.imageAlt} loading="lazy" />
+      ) : (
+        <span aria-hidden="true">{data.tile}</span>
+      )
+    }
   </a>
   <div>
     {data.featured && <span class="tag">Featured</span>}
     <h2>{data.title}</h2>
-    <p class="kind">{data.kind}<span class="pill">{data.status === 'live' ? 'Live' : 'Coming soon'}</span></p>
+    <p class="kind">
+      {data.kind}{data.status === "live" && <span class="pill">Live</span>}
+    </p>
     <p class="d">{data.summary}</p>
-    {repo && <p class="meta"><span>{repo.stars} stars</span>{repo.language && <span>{repo.language}</span>}<span>Updated {repo.updated}</span></p>}
+    {
+      repo && (
+        <p class="meta">
+          <span>{repo.stars} stars</span>
+          {repo.language && <span>{repo.language}</span>}
+          <span>Updated {repo.updated}</span>
+        </p>
+      )
+    }
     <ul class="chips">{data.stack.map((s: string) => <li>{s}</li>)}</ul>
     <div class="cta-row">
-      <a class={data.featured ? 'btn' : 'btn line'} href={href}>Read case study</a>
-      {data.storeUrl && <a class="btn line" href={data.storeUrl} rel="noopener">Google Play</a>}
-      {data.githubUrl && <a class="btn line" href={data.githubUrl} rel="noopener">GitHub</a>}
+      <a class={data.featured ? "btn" : "btn line"} href={href}
+        >Read case study</a
+      >
+      {
+        data.storeUrl && (
+          <a class="btn line" href={data.storeUrl} rel="noopener noreferrer">
+            Google Play
+          </a>
+        )
+      }
+      {
+        data.githubUrl && (
+          <a class="btn line" href={data.githubUrl} rel="noopener noreferrer">
+            GitHub
+          </a>
+        )
+      }
     </div>
   </div>
 </article>

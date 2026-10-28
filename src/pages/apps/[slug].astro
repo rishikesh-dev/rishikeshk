@@ -4,6 +4,7 @@ import { getApps } from '../../lib/apps';
 import { getRepo, getReadme } from '../../lib/github';
 import { mergeProjectDetails } from '../../lib/projectView';
 import Base from '../../layouts/Base.astro';
+import { site } from '../../data/site';
 
 export async function getStaticPaths() {
   const all = await getApps();
@@ -13,20 +14,48 @@ const { project } = Astro.props;
 const { Content } = await render(project);
 const d = project.data;
 const body = project.body ?? '';
-const [repoResult, readmeResult] = await Promise.allSettled([
-  getRepo(d.githubUrl),
-  getReadme(d.githubUrl),
-]);
-const repo = repoResult.status === 'fulfilled' ? repoResult.value : null;
-const readme = readmeResult.status === 'fulfilled' ? readmeResult.value : null;
-const merged = mergeProjectDetails(d, body, repo, readme);
+
+const titleNoSpaces = (d.title || '').replace(/\s+/g, '');
+const idNoHyphens = project.id.replace(/-/g, '');
+const baseGithub = site.github ? site.github.replace(/\/$/, '') : '';
+
+const repoCandidates = [
+  d.githubUrl,
+  baseGithub ? `${baseGithub}/${d.title}` : '',
+  baseGithub ? `${baseGithub}/${titleNoSpaces}` : '',
+  baseGithub ? `${baseGithub}/${project.id}` : '',
+  baseGithub ? `${baseGithub}/${idNoHyphens}` : '',
+].filter((u) => typeof u === 'string' && u.trim());
+
+let repoUrl = repoCandidates[0] || d.githubUrl;
+let repo: any = null;
+let fetchedReadme: any = null;
+for (const candidate of repoCandidates) {
+  if (!candidate) continue;
+  const [r, rm] = await Promise.allSettled([getRepo(candidate), getReadme(candidate)]);
+  const rVal = r.status === 'fulfilled' ? r.value : null;
+  const rmVal = rm.status === 'fulfilled' ? rm.value : null;
+  if (rVal || rmVal) {
+    repoUrl = candidate;
+    repo = rVal;
+    fetchedReadme = rmVal;
+    break;
+  }
+}
+if (!repo && !fetchedReadme) {
+  const [r, rm] = await Promise.allSettled([getRepo(repoUrl), getReadme(repoUrl)]);
+  repo = r.status === 'fulfilled' ? r.value : null;
+  fetchedReadme = rm.status === 'fulfilled' ? rm.value : null;
+}
+const readmeHtml = fetchedReadme?.html || '';
+const merged = mergeProjectDetails(d, repo);
 ---
 <Base title={`${d.title} case study – Rishikesh K`} description={merged.summary} image={d.image}>
   <article class="cs">
     <a class="back" href="/#work">Back to projects</a>
-    <h1>{d.title}</h1>
-    <p class="kind">{d.kind}<span class="pill">{d.status === 'live' ? 'Live' : 'Coming soon'}</span></p>
-    {merged.summary && <p class="lead">{merged.summary}</p>}
+    <h1 class="js-reveal">{d.title}</h1>
+    <p class="kind js-reveal">{d.kind}{d.status === 'live' && <span class="pill">Live</span>}</p>
+    {merged.summary && <p class="lead js-reveal">{merged.summary}</p>}
     {repo && (
       <p class="meta">
         <span>{repo.stars} stars</span>
@@ -40,20 +69,15 @@ const merged = mergeProjectDetails(d, body, repo, readme);
     {repo?.topics.length ? <p class="topics">Topics: {repo.topics.join(' · ')}</p> : null}
     <div class="cta-row">
       {d.storeUrl && <a class="btn" href={d.storeUrl} rel="noopener">Get it on Google Play</a>}
-      {d.githubUrl && <a class="btn line" href={d.githubUrl} rel="noopener">View code on GitHub</a>}
+      {repoUrl && <a class="btn line" href={repoUrl} rel="noopener">View code on GitHub</a>}
       <a class={d.storeUrl || d.githubUrl ? 'btn line' : 'btn'} href="/#contact">Work with me</a>
     </div>
-    {d.image && <div class="shot"><img src={d.image} alt={d.imageAlt} /></div>}
-    {body.trim() && <div class="prose"><Content /></div>}
-    {merged.readmeSections.length > 0 && (
-      <div class="prose readme">
+    {d.image && <div class="shot js-inview"><img src={d.image} alt={d.imageAlt} /></div>}
+    {body.trim() && <div class="prose js-inview"><Content /></div>}
+    {readmeHtml && (
+      <div class="prose readme js-inview">
         <h2>From the README</h2>
-        {merged.readmeSections.map((section) => (
-          <section class="readme-section" aria-labelledby={`readme-${section.id}`}>
-            <h3 id={`readme-${section.id}`}>{section.title}</h3>
-            <Fragment set:html={section.html} />
-          </section>
-        ))}
+        <Fragment set:html={readmeHtml} />
       </div>
     )}
   </article>

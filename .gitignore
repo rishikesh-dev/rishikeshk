@@ -23,3 +23,18 @@ yarn-error.log*
 
 # jetbrains setting folder
 .idea/
+
+# AI/agent tooling
+.agents/
+.opencode/
+opencode.json
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.cursor/
+.claude/
+.windsurf/
+.continue/
+.codex/
+.aider*

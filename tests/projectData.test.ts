@@ -121,6 +121,17 @@ test('falls back to the document id and then a generated slug', () => {
   assert.equal(slugify('  Héllo, World!  '), 'hello-world');
 });
 
+test('control characters in Firestore text are removed', () => {
+  const project = normalizeProject({
+    title: 'Clean\u0000 title',
+    description: 'A\u0000B\u001F',
+    story: 'Line one\n\u0000Line two',
+  });
+  assert.equal(project?.title, 'Clean title');
+  assert.equal(project?.summary, 'AB');
+  assert.equal(project?.story, 'Line one\nLine two');
+});
+
 test('list fields accept arrays and comma/newline strings', () => {
   assert.deepEqual(toList([' Flutter ', '', 'Hive']), ['Flutter', 'Hive']);
   assert.deepEqual(toList('Flutter, Hive\nBLoC'), ['Flutter', 'Hive', 'BLoC']);

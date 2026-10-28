@@ -318,6 +318,8 @@ try {
     const upcoming = upcomingCards(html);
     assert.equal(upcoming.length, 1, 'status:soon projects should render under More on the way');
     includes(upcoming[0], 'Pocket Atlas', 'Firestore upcoming project');
+    includes(upcoming[0], 'Case study', 'upcoming project case study link');
+    excludes(html, 'Coming soon', 'no Coming soon label');
     assert.ok(!rows.join('').includes('Pocket Atlas'), 'upcoming project must not be duplicated in the index');
     includes(html, 'id="menu"', 'mobile navigation');
 
@@ -327,12 +329,13 @@ try {
     includes(focus, 'Curated decision marker.', 'curated decisions');
     includes(focus, 'Architecture marker for Focus Ledger.', 'README architecture');
     includes(focus, 'Setup marker for Focus Ledger.', 'README setup');
+    includes(focus, 'README overview marker for Focus Ledger.', 'full README is shown');
+    includes(focus, 'README features marker.', 'full README is shown');
     includes(focus, '21 stars', 'GitHub stars');
     includes(focus, 'Repository description for focus-ledger.', 'GitHub description');
     includes(focus, 'Get it on Google Play', 'Play Store link');
     includes(focus, 'github.com/mock/focus-ledger', 'GitHub link');
-    excludes(focus, 'README overview marker for Focus Ledger.', 'curated story suppresses README overview');
-    excludes(focus, 'README features marker.', 'curated highlight suppresses README features');
+    includes(focus, 'href="#top"', 'back to top button');
     excludes(focus, 'javascript:alert', 'unsafe README link');
     excludes(focus, '<script>alert', 'README script injection');
 

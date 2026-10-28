@@ -23,6 +23,10 @@ html {
     overflow-x: hidden
 }
 
+body {
+    line-height: 1.6;
+}
+
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;
@@ -40,8 +44,10 @@ html.js [data-reveal]:not([data-in]) {
 
 /* rule: section labels draw underline, section top borders, footer rule */
 html.js [data-reveal="rule"]:not([data-in]) {
-    opacity: 1; /* keep label text visible, only hide pseudo-elements */
+    opacity: 1;
+    /* keep label text visible, only hide pseudo-elements */
 }
+
 html.js [data-reveal="rule"]:not([data-in])::before,
 html.js [data-reveal="rule"]:not([data-in])::after {
     transform: scaleX(0);
@@ -71,28 +77,65 @@ html.js [data-reveal="stamp"]:not([data-in]) {
 
 /* Keyframes */
 @keyframes rule-underline {
-    from { transform: scaleX(0); transform-origin: left; }
-    to { transform: scaleX(1); transform-origin: left; }
+    from {
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+
+    to {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
 }
 
 @keyframes ink-wipe-scroll {
-    from { clip-path: inset(0 100% 0 0); opacity: 0; }
-    to { clip-path: inset(0); opacity: 1; }
+    from {
+        clip-path: inset(0 100% 0 0);
+        opacity: 0;
+    }
+
+    to {
+        clip-path: inset(0);
+        opacity: 1;
+    }
 }
 
 @keyframes feed-up {
-    from { clip-path: inset(100% 0 0 0); transform: translateY(24px); opacity: 0; }
-    to { clip-path: inset(0); transform: translateY(0); opacity: 1; }
+    from {
+        clip-path: inset(100% 0 0 0);
+        transform: translateY(24px);
+        opacity: 0;
+    }
+
+    to {
+        clip-path: inset(0);
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes rise-up {
-    from { transform: translateY(16px); opacity: 0; }
-    to { transform: none; opacity: 1; }
+    from {
+        transform: translateY(16px);
+        opacity: 0;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
 }
 
 @keyframes stamp-in {
-    from { transform: rotate(-8deg) scale(1.6); opacity: 0; }
-    to { transform: rotate(-2deg) scale(1); opacity: 1; }
+    from {
+        transform: rotate(-8deg) scale(1.6);
+        opacity: 0;
+    }
+
+    to {
+        transform: rotate(-2deg) scale(1);
+        opacity: 1;
+    }
 }
 
 /* Apply animations when data-in is set */
@@ -229,14 +272,14 @@ nav {
 }
 
 h1 {
-    font: 900 clamp(64px, 10.6vw, 158px)/.86 var(--head);
+    font: 900 clamp(64px, 10.6vw, 158px)/.95 var(--head);
     letter-spacing: -.01em;
     text-transform: uppercase
 }
 
 h1 span {
     display: block;
-    overflow: hidden;
+    overflow: visible;
     padding-top: .04em
 }
 
@@ -260,7 +303,8 @@ h1 em {
 
 .intro {
     max-width: 30em;
-    margin: 34px 0 30px
+    margin: 34px 0 30px;
+    line-height: 1.6;
 }
 
 .btn {
@@ -324,7 +368,7 @@ section.s {
     display: grid;
     grid-template-columns: 1.1fr .9fr;
     gap: 48px;
-    align-items: center;
+    align-items: start;
     transition: transform 200ms ease
 }
 
@@ -381,7 +425,7 @@ section.s {
 }
 
 .work h2 {
-    font: 900 clamp(56px, 8vw, 112px)/.95 var(--head);
+    font: 900 clamp(56px, 8vw, 112px)/1.02 var(--head);
     margin: 14px 0 10px 0;
     letter-spacing: -.01em
 }
@@ -392,7 +436,8 @@ section.s {
 }
 
 .work p.d {
-    max-width: 28em
+    max-width: 28em;
+    line-height: 1.6;
 }
 
 .chips {
@@ -428,7 +473,7 @@ section.s {
     background: var(--color-bg);
     color: var(--color-ink);
     min-height: 780px;
-    overflow: hidden
+    overflow: visible
 }
 
 .about-inner {
@@ -454,14 +499,14 @@ section.s {
 }
 
 .about-h1 {
-    font: 900 76px/0.98 var(--head);
+    font: 900 76px/1.05 var(--head);
     letter-spacing: -1px;
     text-transform: none;
     margin: 0
 }
 
 .pull-quote {
-    font: 800 44px/1.12 var(--head);
+    font: 800 44px/1.18 var(--head);
     margin-top: 56px;
     max-width: 560px;
     quotes: none
@@ -541,7 +586,9 @@ section.s {
 .receipt-row {
     display: flex;
     align-items: baseline;
-    margin: 0 0 6px 0
+    flex-wrap: wrap;
+    margin: 0 0 8px 0;
+    gap: 2px
 }
 
 .receipt-label {
@@ -551,14 +598,14 @@ section.s {
 }
 
 .receipt-leader {
-    flex: 1;
-    min-width: 16px;
+    flex: 1 1 auto;
+    min-width: 10px;
     border-bottom: 2px dotted var(--color-dots);
     margin: 0 6px
 }
 
 .receipt-value {
-    white-space: nowrap
+    white-space: normal
 }
 
 .receipt-value.accent {
@@ -568,11 +615,11 @@ section.s {
 
 .receipt-name {
     font-weight: 600;
-    white-space: nowrap
+    white-space: normal
 }
 
 .receipt-status {
-    white-space: nowrap
+    white-space: normal
 }
 
 .receipt-status.live {
@@ -584,18 +631,17 @@ section.s {
     font-size: 12px;
     color: var(--color-muted);
     margin: 2px 0 0 18px;
-    white-space: nowrap
+    white-space: normal;
+    line-height: 1.5;
 }
 
 .receipt-barcode {
     height: 46px;
-    background: repeating-linear-gradient(
-        90deg,
-        var(--color-ink),
-        var(--color-ink) 2px,
-        transparent 2px,
-        transparent 4px
-    );
+    background: repeating-linear-gradient(90deg,
+            var(--color-ink),
+            var(--color-ink) 2px,
+            transparent 2px,
+            transparent 4px);
     margin: 14px 0 8px 0
 }
 
@@ -610,8 +656,9 @@ section.s {
 /* About section mobile (<=860px) */
 @media (max-width: 860px) {
     .about-right {
-        overflow: hidden
+        overflow: visible
     }
+
     .about-inner {
         max-width: 100%;
         padding: 40px 24px
@@ -946,7 +993,8 @@ footer {
     letter-spacing: .06em;
     text-transform: uppercase;
     padding: 3px 10px;
-    vertical-align: middle
+    vertical-align: middle;
+    margin-left: 10px;
 }
 
 .work .kind {
@@ -995,7 +1043,7 @@ footer {
 .form input,
 .form select,
 .form textarea {
-    font: 400 18px var(--body);
+    font: 400 18px/1.6 var(--body);
     padding: 12px 14px;
     border: 2px solid var(--ink);
     background: transparent;
@@ -1039,19 +1087,21 @@ footer {
 }
 
 .cs h1 {
-    font: 900 clamp(56px, 10vw, 140px)/.9 var(--head);
+    font: 900 clamp(56px, 10vw, 140px)/1.02 var(--head);
     text-transform: none;
     margin: 18px 0 8px
 }
 
 .cs .kind {
     font: 700 22px var(--head);
-    margin-bottom: 18px
+    margin-bottom: 12px;
+    margin-top: 18px;
 }
 
 .cs .lead {
     font-size: 22px;
-    max-width: 30em
+    max-width: 30em;
+    line-height: 1.6;
 }
 
 .cs .shot {
@@ -1504,11 +1554,7 @@ html[data-astro-transition="back"]::view-transition-old(root) {
     animation-delay: calc(var(--step) * 2);
 }
 
-.js h1 span:nth-child(3) i::after {
-    content: ".";
-    display: inline-block;
-    animation: stamp var(--t-fast) var(--ease-out) both;
-}
+
 
 .js h1 span::after {
     content: none;

@@ -1,94 +1,170 @@
 ---
-import { getProjectGroups } from '../lib/apps';
-import { getRepo } from '../lib/github';
-import { fsDoc } from '../lib/firestore';
-import Base from '../layouts/Base.astro';
-import ProjectRow from '../components/ProjectRow.astro';
-import ProjectIndex from '../components/ProjectIndex.astro';
-import Pubspec from '../components/Pubspec.astro';
-import ContactForm from '../components/ContactForm.astro';
-import { site } from '../data/site';
+import { getProjectGroups } from "../lib/apps";
+import { getRepo } from "../lib/github";
+import { fsDoc } from "../lib/firestore";
+import Base from "../layouts/Base.astro";
+import ProjectRow from "../components/ProjectRow.astro";
+import ProjectIndex from "../components/ProjectIndex.astro";
+import Pubspec from "../components/Pubspec.astro";
+import ContactForm from "../components/ContactForm.astro";
+import { site } from "../data/site";
 
 const { featured, upcoming, others } = await getProjectGroups();
 // Only fetch GitHub metadata for projects that actually render as feature rows.
-const repos = await Promise.all(featured.map((project) => getRepo(project.data.githubUrl)));
+const repos = await Promise.all(
+  featured.map((project) => getRepo(project.data.githubUrl)),
+);
 
 const buildLog = [
-  { name: 'Journeo', status: 'LIVE', note: 'Play Store · 500 downloads', state: 'live', href: site.playStoreDev },
-  { name: 'Inveio', status: 'BUILDING', note: '', state: 'progress' },
-  { name: 'Jarvis', status: 'BUILDING', note: '', state: 'progress' },
-  { name: 'Next app', status: 'PLANNED', note: '', state: 'planned' },
+  {
+    name: "Journeo",
+    status: "LIVE",
+    note: "Play Store · 500 downloads",
+    state: "live",
+    href: site.playStoreDev,
+  },
+  { name: "Inveio", status: "BUILDING", note: "", state: "progress" },
+  { name: "Jarvis", status: "BUILDING", note: "", state: "progress" },
+  { name: "Next app", status: "PLANNED", note: "", state: "planned" },
 ];
 ---
+
 <Base>
   <header class="hero" id="home">
     <div>
       <p class="label js-reveal"><b>01</b>Flutter Developer, India</p>
-      <h1><span><i>Apps</i></span><span><i>With</i></span><span><i>Purpose<em>.</em></i></span></h1>
-      <p class="intro js-reveal">I design and develop thoughtful mobile apps with Flutter. From personal tools to productivity apps, I focus on clean code, solid architecture and real-world usability.</p>
-      <div class="cta-row js-reveal"><a class="btn" href="#work">View Projects</a><a class="btn line" href="#contact">Contact Me</a></div>
+      <h1>
+        <span><i>Apps</i></span><span><i>With</i></span><span
+          ><i>Purpose<em>.</em></i></span
+        >
+      </h1>
+      <p class="intro js-reveal">
+        I design and develop thoughtful mobile apps with Flutter. From personal
+        tools to productivity apps, I focus on clean code, solid architecture
+        and real-world usability.
+      </p>
+      <div class="cta-row js-reveal">
+        <a class="btn" href="#work">View Projects</a><a
+          class="btn line"
+          href="#contact">Contact Me</a
+        >
+      </div>
     </div>
-    <img class="sketch js-reveal" src="/images/sketch.jpg" width=744 height=562 alt="Pencil sketch of a developer typing on a laptop at a desk with a lamp and a plant" fetchpriority="high" />
+    <img
+      class="sketch js-reveal"
+      src="/images/sketch.jpg"
+      width="744"
+      height="562"
+      alt="Pencil sketch of a developer typing on a laptop at a desk with a lamp and a plant"
+      fetchpriority="high"
+    />
   </header>
 
   <section class="s" id="work">
     <p class="label js-inview"><b>02</b>Featured Works</p>
-    {featured.length > 0
-      ? featured.map((p, i) => <div class="js-inview"><ProjectRow id={p.id} data={p.data} flip={i % 2 === 1} repo={repos[i]} /></div>)
-      : <p class="empty-note js-inview">{others.length + upcoming.length > 0 ? 'Nothing is featured right now. Browse every project below.' : 'No projects are published yet.'}</p>}
-    {others.length > 0 && (
-      <div class="more project-index">
-        <h3>More projects</h3>
-        <div class="index">
-          {others.map((p, i) => <ProjectIndex project={p} index={i} />)}
+    {
+      featured.length > 0 ? (
+        featured.map((p, i) => (
+          <div class="js-inview">
+            <ProjectRow
+              id={p.id}
+              data={p.data}
+              flip={i % 2 === 1}
+              repo={repos[i]}
+            />
+          </div>
+        ))
+      ) : (
+        <p class="empty-note js-inview">
+          {others.length + upcoming.length > 0
+            ? "Nothing is featured right now. Browse every project below."
+            : "No projects are published yet."}
+        </p>
+      )
+    }
+    {
+      others.length > 0 && (
+        <div class="more project-index">
+          <h3>More projects</h3>
+          <div class="index">
+            {others.map((p, i) => (
+              <ProjectIndex project={p} index={i} />
+            ))}
+          </div>
         </div>
-      </div>
-    )}
-    {upcoming.length > 0 && (
-      <div class="more">
-        <h3>More on the way</h3>
-        <div class="soon">
-          {upcoming.map((p) => (
-            <article class="ph">
-              <a class="st" href={`/apps/${p.id}/`}>Case study</a>
-              <div>
-                <h4><a href={`/apps/${p.id}/`}>{p.data.title}</a></h4>
-                {p.data.summary && <p>{p.data.summary}</p>}
-              </div>
-              <span class="cat">{p.data.kind}</span>
-            </article>
-          ))}
+      )
+    }
+    {
+      upcoming.length > 0 && (
+        <div class="more">
+          <h3>More on the way</h3>
+          <div class="soon">
+            {upcoming.map((p) => (
+              <article class="ph">
+                <a class="st" href={`/apps/${p.id}/`}>
+                  Case study
+                </a>
+                <div>
+                  <h4>
+                    <a href={`/apps/${p.id}/`}>{p.data.title}</a>
+                  </h4>
+                  {p.data.summary && <p>{p.data.summary}</p>}
+                </div>
+                <span class="cat">{p.data.kind}</span>
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
-    )}
+      )
+    }
   </section>
 
   <section class="s about" id="about">
     <div class="about-inner">
       <div class="about-grid">
         <div class="about-left">
-          <p class="about-label"><b>03</b> | About</p>
-          <h1 class="about-h1">I build apps the way I want to use them: fast, simple and made to last.</h1>
-          <p class="pull-quote">Solo. You talk to the person who writes the code.</p>
-          <p class="mockup-caption"><a href={site.playStoreDev} rel="noopener">Journeo, live on Play Store →</a></p>
+          <p class="label"><b>03</b> About</p>
+          <h1 class="about-h1">
+            I build apps the way I want to use them: fast, simple and made to
+            last.
+          </h1>
+          <p class="pull-quote">
+            Solo. You talk to the person who writes the code.
+          </p>
+          <p class="mockup-caption">
+            <a href={site.playStoreDev} rel="noopener noreferrer"
+              >Journeo, live on Play Store →</a
+            >
+          </p>
         </div>
         <div class="about-right">
           <ul class="receipt">
             <li class="receipt-title">APP RECEIPT</li>
             <li class="receipt-sub">Order 03 · Kerala, India</li>
             <li class="receipt-divider dashed"></li>
-            <li class="receipt-row"><span class="receipt-label">SERVED BY</span><span class="receipt-leader"></span><span class="receipt-value">Richi, the dev</span></li>
+            <li class="receipt-row">
+              <span class="receipt-label">SERVED BY</span><span
+                class="receipt-leader"></span><span class="receipt-value"
+                >Richi, the dev</span
+              >
+            </li>
             <li class="receipt-divider dashed"></li>
-            {buildLog.map((entry, i) => (
-              <li class={`receipt-row receipt-build ${entry.state}`}>
-                <span class="receipt-name" style={{ fontWeight: 600 }}>{i + 1} {entry.name}</span>
-                <span class="receipt-leader"></span>
-                <span class={`receipt-status ${entry.state === 'live' ? 'live' : ''}`}>{entry.status}</span>
-                {entry.note && (
-                  <p class="receipt-note">{entry.note}</p>
-                )}
-              </li>
-            ))}
+            {
+              buildLog.map((entry, i) => (
+                <li class={`receipt-row receipt-build ${entry.state}`}>
+                  <span class="receipt-name" style={{ fontWeight: 600 }}>
+                    {i + 1} {entry.name}
+                  </span>
+                  <span class="receipt-leader" />
+                  <span
+                    class={`receipt-status ${entry.state === "live" ? "live" : ""}`}
+                  >
+                    {entry.status}
+                  </span>
+                  {entry.note && <p class="receipt-note">{entry.note}</p>}
+                </li>
+              ))
+            }
             <li class="receipt-divider solid"></li>
             <li class="receipt-barcode"></li>
             <li class="receipt-footer">FAST. SIMPLE. MADE TO LAST.</li>
@@ -107,7 +183,13 @@ const buildLog = [
         <h2>Let’s build something with purpose.</h2>
         <div class="alt">
           <a href={`mailto:${site.email}`}>{site.email}</a>
-          {site.bookingUrl && <a href={site.bookingUrl} rel="noopener">Book a call</a>}
+          {
+            site.bookingUrl && (
+              <a href={site.bookingUrl} rel="noopener noreferrer">
+                Book a call
+              </a>
+            )
+          }
         </div>
       </div>
       <ContactForm />

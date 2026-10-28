@@ -2,6 +2,13 @@ import type { Loader } from 'astro/loaders';
 import { fsList } from './firestore.ts';
 import { normalizeProjects } from './projectData.ts';
 
+const metaEnv = ((import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {});
+const getEnv = (key: string): string | undefined => {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
+  if (metaEnv && metaEnv[key]) return metaEnv[key];
+  return undefined;
+};
+
 // Builds the "apps" content from the Firestore "projects" collection. The field
 // names match the old portfolio: title, description, techStack, tag,
 // playStoreUrl, githubUrl, story, highlight, decisions, image and featured.
@@ -13,6 +20,7 @@ export function appsLoader(): Loader {
     name: 'firestore-apps',
     async load({ store, parseData, renderMarkdown, logger, generateDigest }) {
       store.clear();
+      void 0;
 
       let docs: Array<Record<string, any>> | null = null;
       try {
@@ -30,7 +38,7 @@ export function appsLoader(): Loader {
         return;
       }
 
-      const projects = normalizeProjects(docs);
+      const projects = await normalizeProjects(docs);
       let loaded = 0;
 
       for (const project of projects) {
@@ -61,9 +69,9 @@ export function appsLoader(): Loader {
           store.set({
             id: project.id,
             data: parsed,
-            body: project.body,
+            body: project.readmeMarkdown || project.body,
             rendered: { html },
-            digest: generateDigest({ data: parsed, body: project.body }),
+            digest: generateDigest({ data: parsed, body: project.readmeMarkdown || project.body }),
           });
           loaded += 1;
         } catch (error: any) {

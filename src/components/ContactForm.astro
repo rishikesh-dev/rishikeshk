@@ -33,122 +33,89 @@ const fsKey = import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '';
     const newMsg = document.getElementById('form-msg');
     if (!newForm || !newMsg) return;
     const stringValue = (value) => ({ stringValue: String(value ?? '') });
+    const loadTime = Date.now();
     newForm.addEventListener('submit', async (e) => {
       const { endpoint, fsProject, fsKey, email } = newForm.dataset;
       const useFirestore = Boolean(fsProject && fsKey);
       if (!useFirestore && !endpoint) return;
       e.preventDefault();
       const data = new FormData(newForm);
+      const submitBtn = newForm.querySelector('.btn');
+      if (submitBtn && submitBtn.disabled) return;
       newMsg.className = 'form-msg';
       newMsg.textContent = 'Sending...';
+      if (Date.now() - loadTime < 3000) {
+        newMsg.className = 'form-msg err';
+        newMsg.textContent = 'Please try again.';
+        return;
+      }
       if (data.get('_gotcha')) {
         newMsg.textContent = 'Thanks. I will reply within two days.';
         return;
       }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
       try {
-        const projectId = fsProject;
-        const apiKey = fsKey;
-        const w3fKey = newForm.dataset.w3fKey;
-        console.log('[form] fs project length:', String(projectId||'').length, 'key length:', String(apiKey||'').length);
-        console.log('[form] w3f key present:', Boolean(w3fKey));
-        const payload = {
-          fields: {
-            name: stringValue(data.get('name')),
-            email: stringValue(data.get('email')),
-            topic: stringValue(data.get('topic')),
-            message: stringValue(data.get('message')),
-            sentAt: stringValue(new Date().toISOString()),
-            source: stringValue('portfolio'),
-          },
-        };
-        const payloadForLog = {
-          name: typeof String(data.get('name')),
-          email: typeof String(data.get('email')),
-          topic: typeof String(data.get('topic')),
-          message: typeof String(data.get('message')),
-          sentAt: 'string',
-          source: 'string'
-        };
-        console.log('[form] payload keys and types:', JSON.stringify(payloadForLog));
-        const fsPayload = {
-          fields: {
-            name: stringValue(data.get('name')),
-            email: stringValue(data.get('email')),
-            topic: stringValue(data.get('topic')),
-            message: stringValue(data.get('message')),
-            sentAt: stringValue(new Date().toISOString()),
-            source: stringValue('portfolio'),
-          },
-        };
-        const fsPayloadTypes = {
-          name: 'stringValue',
-          email: 'stringValue',
-          topic: 'stringValue',
-          message: 'stringValue',
-          sentAt: 'stringValue',
-          source: 'stringValue'
-        };
-        console.log('[form] firestore request body keys and types:', JSON.stringify(fsPayloadTypes));
-        const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/messages`;
-        console.log('[form] firestore url:', fsUrl);
         const res = useFirestore
-          ? await fetch(`${fsUrl}?key=${apiKey}`, {
+          ? await fetch(`https://firestore.googleapis.com/v1/projects/${fsProject}/databases/(default)/documents/messages?key=${fsKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(fsPayload),
+              body: JSON.stringify({
+                fields: {
+                  name: stringValue(data.get('name')),
+                  email: stringValue(data.get('email')),
+                  topic: stringValue(data.get('topic')),
+                  message: stringValue(data.get('message')),
+                  sentAt: stringValue(new Date().toISOString()),
+                  source: stringValue('portfolio'),
+                },
+              }),
             })
           : await fetch(endpoint, {
               method: 'POST',
               body: data,
               headers: { Accept: 'application/json' },
             });
-        console.log('[form] firestore status:', res.status);
-        try {
-          const bodyText = await res.clone().text();
-          console.log('[form] firestore body:', bodyText);
-          if (import.meta.env.DEV && !res.ok && newMsg) {
-            newMsg.className = 'form-msg err';
-            newMsg.textContent = `Firestore ${res.status}: ${bodyText.slice(0, 150)}`;
-          }
-        } catch (e) {
-          console.log('[form] firestore body: <unreadable>');
-        }
         if (!res.ok) throw new Error();
         newForm.reset();
 
         try {
           const accessKey = newForm.dataset.w3fKey;
-          if (!accessKey) {
-            console.warn('Web3Forms: PUBLIC_WEB3FORMS_KEY missing');
-          } else {
-            const res2 = await fetch('https://api.web3forms.com/submit', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                access_key: accessKey,
-                name: String(data.get('name') ?? ''),
-                email: String(data.get('email') ?? ''),
-                subject: `Portfolio: ${String(data.get('topic') ?? '')}`,
-                message: String(data.get('message') ?? ''),
-                from_name: 'Portfolio'
-              })
-            });
-            console.log('[form] w3f status:', res2.status);
+          if (accessKey) {
             try {
-              console.log('[form] w3f body:', await res2.text());
-            } catch {}
-            if (!res2.ok) {
+              const res2 = await fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  access_key: accessKey,
+                  name: String(data.get('name') ?? ''),
+                  email: String(data.get('email') ?? ''),
+                  subject: `Portfolio: ${String(data.get('topic') ?? '')}`,
+                  message: String(data.get('message') ?? ''),
+                  from_name: 'Portfolio'
+                })
+              });
+              if (!res2.ok) {
+                console.warn('Web3Forms submit failed');
+              }
+            } catch {
               console.warn('Web3Forms submit failed');
             }
           }
-        } catch (err) {
-          console.warn(err);
+        } catch {
+          console.warn('Web3Forms submit failed');
         }
 
+        if (submitBtn) {
+          submitBtn.disabled = true;
+        }
         newMsg.className = 'form-msg';
         newMsg.textContent = "Message sent. I'll reply soon.";
-      } catch (err) {
-        console.error('[form] outer catch:', err);
+      } catch {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+        }
         newMsg.className = 'form-msg err';
         newMsg.textContent = `Could not send. Please email me at ${email}.`;
       }
