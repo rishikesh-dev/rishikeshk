@@ -61,14 +61,41 @@ const fsKey = import.meta.env.PUBLIC_FIREBASE_API_KEY ?? '';
             source: stringValue('portfolio'),
           },
         };
-        console.log('[form] payload keys and types:', { name: typeof String(data.get('name')), email: typeof String(data.get('email')), topic: typeof String(data.get('topic')), message: typeof String(data.get('message')), sentAt: 'string', source: 'string' });
+        const payloadForLog = {
+          name: typeof String(data.get('name')),
+          email: typeof String(data.get('email')),
+          topic: typeof String(data.get('topic')),
+          message: typeof String(data.get('message')),
+          sentAt: 'string',
+          source: 'string'
+        };
+        console.log('[form] payload keys and types:', JSON.stringify(payloadForLog));
+        const fsPayload = {
+          fields: {
+            name: stringValue(data.get('name')),
+            email: stringValue(data.get('email')),
+            topic: stringValue(data.get('topic')),
+            message: stringValue(data.get('message')),
+            sentAt: stringValue(new Date().toISOString()),
+            source: stringValue('portfolio'),
+          },
+        };
+        const fsPayloadTypes = {
+          name: 'stringValue',
+          email: 'stringValue',
+          topic: 'stringValue',
+          message: 'stringValue',
+          sentAt: 'stringValue',
+          source: 'stringValue'
+        };
+        console.log('[form] firestore request body keys and types:', JSON.stringify(fsPayloadTypes));
         const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/messages`;
         console.log('[form] firestore url:', fsUrl);
         const res = useFirestore
           ? await fetch(`${fsUrl}?key=${apiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+              body: JSON.stringify(fsPayload),
             })
           : await fetch(endpoint, {
               method: 'POST',
