@@ -1,0 +1,20 @@
+---
+const { project, index } = Astro.props;
+const { data } = project;
+const href = `/apps/${project.id}/`;
+const number = String(index + 1).padStart(2, '0');
+---
+<article class="index-row">
+  <span class="index-num" aria-hidden="true">{number}</span>
+  <div class="index-main">
+    <h4><a href={href}>{data.title}</a></h4>
+    <p class="index-kind">{data.kind}{data.status === 'live' && <span class="pill">Live</span>}</p>
+    {data.summary && <p class="index-summary">{data.summary}</p>}
+    {data.stack.length > 0 && <ul class="chips">{data.stack.map((s: string) => <li>{s}</li>)}</ul>}
+  </div>
+  <div class="index-links">
+    <a class="index-more" href={href}>Case study</a>
+    {data.storeUrl && <a href={data.storeUrl} rel="noopener noreferrer">Google Play</a>}
+    {data.githubUrl && <a href={data.githubUrl} rel="noopener noreferrer">GitHub</a>}
+  </div>
+</article>

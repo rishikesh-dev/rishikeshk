@@ -1,0 +1,143 @@
+---
+import "@fontsource-variable/playfair-display";
+import "@fontsource-variable/source-serif-4";
+import "../styles/global.css";
+import { site } from "../data/site";
+import { ClientRouter } from "astro:transitions";
+
+const {
+  title = `${site.name} – ${site.role}`,
+  description = site.description,
+  image = "/images/sketch.jpg",
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+const ogImage = new URL(image, canonical);
+const sameAs = [site.github, site.linkedin, site.playStoreDev].filter(Boolean);
+const ld = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.name,
+  jobTitle: site.role,
+  url: canonical.origin,
+  ...(sameAs.length ? { sameAs } : {}),
+};
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://firestore.googleapis.com https://api.web3forms.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.web3forms.com;"
+    />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#E9DBBE" />
+    <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+    <ClientRouter />
+  </head>
+  <body id="top">
+    <div class="wrap">
+      <div class="bar">
+        <div class="top"></div>
+        <nav aria-label="Main" id="nav">
+          <a class="logo" href="/">RISHIKESH K</a>
+          <div class="links" id="links">
+            <a href="/">Home</a><a href="/#work">Projects</a><a href="/#about"
+              >About</a
+            ><a href="/#skills">Skills</a><a class="only-m" href="/#contact"
+              >Contact</a
+            >
+          </div>
+          <button
+            class="menu"
+            type="button"
+            id="menu"
+            aria-expanded="false"
+            aria-controls="links">Menu</button
+          >
+          <a class="cta" href="/#contact">Contact</a>
+        </nav>
+      </div>
+      <slot />
+      <footer>
+        <span>© {year} {site.name}</span>
+        <span
+          class="flinks"
+          style="display: flex; gap: 1rem; align-items: center;"
+        >
+          {
+            site.github && (
+              <a href={site.github} rel="me">
+                GitHub
+              </a>
+            )
+          }
+          {
+            site.linkedin && (
+              <a href={site.linkedin} rel="me">
+                LinkedIn
+              </a>
+            )
+          }
+          {
+            site.playStoreDev && (
+              <a href={site.playStoreDev} rel="me">
+                Google Play
+              </a>
+            )
+          }
+          <span>{site.role}, {site.location}</span>
+        </span>
+      </footer>
+    </div>
+
+    <a class="to-top" href="#top" aria-label="Back to the front page">
+      <span class="to-top__arrow" aria-hidden="true">↑</span>
+      <span class="to-top__label">Back to Top</span>
+    </a>
+
+    <script>
+      window.initNav = function initNav() {
+        const nav = document.getElementById("nav");
+        const btn = document.getElementById("menu");
+        if (!nav || !btn) return;
+        const freshBtn = btn.cloneNode(true);
+        btn.replaceWith(freshBtn);
+        freshBtn.addEventListener("click", () => {
+          const open = nav.classList.toggle("open");
+          freshBtn.setAttribute("aria-expanded", String(open));
+        });
+        document.querySelectorAll("#links a").forEach((a) => {
+          const clone = a.cloneNode(true);
+          a.replaceWith(clone);
+          clone.addEventListener("click", () => {
+            nav.classList.remove("open");
+            freshBtn.setAttribute("aria-expanded", "false");
+          });
+        });
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", window.initNav, { once: true });
+      } else {
+        window.initNav();
+      }
+      document.addEventListener("astro:page-load", window.initNav);
+    </script>
+    <script src="../scripts/nav-transitions.js"></script>
+    <script src="../scripts/reveal.ts"></script>
+  </body>
+</html>

@@ -9,18 +9,21 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "verify": "node scripts/verify-build.mjs",
+    "verify:mobile": "node scripts/check-mobile.mjs",
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/react": "^5.0.3",
-    "@tailwindcss/vite": "^4.2.2",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
+    "@fontsource-variable/playfair-display": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.1",
     "astro": "^6.1.4",
-    "firebase": "^12.11.0",
-    "firebase-admin": "^13.7.0",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "tailwindcss": "^4.2.2"
+    "marked": "^18.1.1",
+    "motion": "^12.23.24"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "playwright": "^1.64.1"
   }
 }
