@@ -900,10 +900,7 @@ footer {
     }
 
     .sketch {
-        margin: 0;
-        width: 100%;
-        -webkit-mask-image: linear-gradient(to top, transparent 0, #000 12%);
-        mask-image: linear-gradient(to top, transparent 0, #000 12%)
+        display: none
     }
 
     .links {
